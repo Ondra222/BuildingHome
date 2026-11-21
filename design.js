@@ -262,7 +262,7 @@ function overallDims(f) {
 }
 
 /* ---------- pohled záložky ---------- */
-const TABS = [['stavba', 'Půdorys'], ['odpady', 'Odpady'], ['elektro', 'Elektro'], ['3d', '3D model'], ['cena', 'Cena'], ['vykresy', 'Výkresy']];
+const TABS = [['stavba', 'Půdorys'], ['odpady', 'Odpady'], ['elektro', 'Elektro'], ['3d', '3D model'], ['pozemek', 'Na pozemku'], ['cena', 'Cena'], ['vykresy', 'Výkresy']];
 const TOOLS = {
   stavba: [['select', 'Vybrat'], ['wall-ext', 'Obvodová zeď'], ['wall-load', 'Nosná zeď'], ['wall-part', 'Příčka'], ['window', 'Okno'], ['door', 'Dveře'], ['room', 'Místnost']],
   odpady: [['select', 'Vybrat'], ['pipe', 'Potrubí'], ['fix', 'Předmět']],
@@ -305,6 +305,7 @@ function view() {
     <div class="dztools">${[['roof', 'Zobrazit střechu'], ['inst', 'Instalace (skryje střechu)'], ['cut', 'Jen do vybraného podlaží']].map(([k, l]) => `<label class="chk"><input type="checkbox" data-r3="${k}" ${ui.r3[k] ? 'checked' : ''}>${l}</label>`).join('')}</div>
     <p class="mute">Tažením otáčíte, pravým tlačítkem nebo dvěma prsty posouváte, kolečkem nebo roztažením prstů přibližujete. Tvar a sklon střechy se promítne i do ceny a výkresů.</p>`;
   } else if (t === 'cena') body = vCena();
+  else if (t === 'pozemek') body = vSite();
   else body = vVykresy();
   return `<div class="dz" id="dz"><div class="row"><h2 style="margin:0">Projekt domu</h2>
    <button class="ghost" data-dz="undo" ${ui.undo.length ? '' : 'disabled'}>↶ Zpět</button></div>
@@ -353,6 +354,42 @@ function vCena() {
   ${per ? `Hrubá stavba vychází na ${kc(per)} za m² podlahové plochy; běžně uváděné rozpětí je zhruba 10–25 tisíc Kč/m².` : ''}</p>
   <div class="row" style="justify-content:flex-start"><button data-dz="toplan">Převést do plánu rozpočtu</button><button class="ghost" data-dz="resetprices">Výchozí ceny</button></div>
   <p class="mute">Převod nastaví plán etap Zemní práce a základy, Hrubá stavba, Střecha, Okna a dveře a Instalace (vč. rezervy).</p>`;
+}
+/* ---------- dům na fotce pozemku ---------- */
+const SITE = [['rot', 'Natočení domu', 0, 359, 1, '°'], ['scale', 'Velikost', 40, 250, 1, ' %'], ['pitch', 'Náklon fotoaparátu', -15, 45, .5, '°'], ['camH', 'Výška fotoaparátu', .5, 40, .1, ' m'], ['fov', 'Šířka záběru', 40, 100, 1, '°'], ['sun', 'Směr slunce', 0, 359, 1, '°']];
+function siteDefaults() { const o = outline(D().floors[0]), sz = o ? Math.max(o.bb.X - o.bb.x, o.bb.Y - o.bb.y) : 12;
+  return {x: 0, z: -(sz * 1.6 + 8), rot: 25, scale: 100, pitch: 4, camH: 1.6, fov: 68, sun: 35}; }
+const siteVal = (k, v) => k === 'camH' ? m2(v) : Math.round(v);
+function vSite() {
+  const s = D().site;
+  return `<p>Stoupněte si na místo, odkud chcete dům vidět (třeba z cesty před pozemkem), a vyfoťte pozemek na šířku. Dům se do fotky vloží i se stínem. Prstem nebo myší ho posunete, dvěma prsty otočíte a zvětšíte.</p>
+  <div class="row" style="justify-content:flex-start;margin-bottom:12px"><label class="btn" style="margin:0">Vyfotit pozemek<input type="file" accept="image/*" capture="environment" data-sitefile hidden></label>
+  <label class="btn ghost" style="margin:0;background:transparent;color:var(--ink);border-color:var(--line)">Vybrat fotku z galerie<input type="file" accept="image/*" data-sitefile hidden></label></div>
+  ${s && s.photo ? `<div class="site" id="site"><img id="siteimg" alt="Fotka pozemku"><canvas id="sitecv" aria-label="Dům vložený do fotky pozemku"></canvas><div class="sitebusy" id="sitebusy">Připravuji model…</div></div>
+  <div class="sitectl">${SITE.map(([k, l, mn, mx, st, u]) => `<label>${l} <output id="so_${k}">${siteVal(k, s[k])}${u}</output><input type="range" data-site="${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('')}</div>
+  <p class="mute">Tip: nejdřív nastavte náklon a šířku záběru tak, aby stín a základy seděly na terén, pak dům posuňte a zvětšete. Výška fotoaparátu se hodí pro fotky z okna nebo z dronu.</p>
+  <div class="row" style="justify-content:flex-start"><button data-dz="sitesave">Uložit obrázek</button><button class="ghost" data-dz="sitediary">Uložit do deníku</button><button class="ghost" data-dz="sitereset">Výchozí umístění</button><button class="del" data-dz="sitedel">Odebrat fotku</button></div>`
+  : '<div class="empty">Zatím žádná fotka pozemku.</div>'}`;
+}
+let siteCtl = null;
+async function mountSite(root) {
+  const img = root.querySelector('#siteimg'), cv = root.querySelector('#sitecv'), s = D().site; if (!img) return;
+  const u = await B().photoUrl(s.photo) || s.src; if (!u) { document.getElementById('sitebusy').textContent = 'Fotku se nepodařilo načíst.'; return; }
+  img.src = u; await img.decode().catch(() => {});
+  const ar = img.naturalWidth / img.naturalHeight, st = root.querySelector('#site').style; st.aspectRatio = String(ar); st.width = `min(100%, calc(72vh * ${ar}))`;
+  try {
+    const m = await import('./house3d.js'); if (!cv.isConnected) return;
+    siteCtl?.dispose(); siteCtl = m.mountSite(cv, s, p => { Object.assign(s, p); for (const k of ['rot', 'scale']) { const el = root.querySelector(`[data-site="${k}"]`); if (el) { el.value = s[k]; root.querySelector('#so_' + k).textContent = siteVal(k, s[k]) + SITE.find(x => x[0] === k)[5]; } } }, () => B().persist());
+    document.getElementById('sitebusy').remove();
+  } catch (e) { document.getElementById('sitebusy').textContent = 'Tento prohlížeč neumí 3D (WebGL), dům do fotky vložit nejde.'; console.warn(e); }
+}
+async function siteFile(file) {
+  try {
+    const blob = await B().shrink(file, 2200, .88), d = D(), old = d.site?.photo, keep = d.site ? {...d.site} : siteDefaults();
+    if (B().idbOk) { const id = 'site-' + B().uid(); await B().DB.put('photos', id, blob); d.site = {...keep, photo: id, src: undefined}; if (old) B().DB.del('photos', old).catch(() => {}); }
+    else { const r = new FileReader(); d.site = {...keep, photo: 'inline', src: await new Promise(ok => { r.onload = () => ok(r.result); r.readAsDataURL(blob); })}; }
+    B().save();
+  } catch (e) { B().toast('Fotku se nepodařilo načíst'); }
 }
 function vVykresy() {
   const m = D().meta;
@@ -731,6 +768,13 @@ function onClick(e) {
     B().save(); return B().toast('Plán rozpočtu upraven podle návrhu', () => { s.stages = JSON.parse(old); B().save(); });
   }
   if (a === 'print') return doPrint();
+  if (a === 'sitereset') { Object.assign(d.site, siteDefaults()); return B().save(); }
+  if (a === 'sitedel') { const old = d.site; delete d.site; B().save(); return B().toast('Fotka odebrána', () => { d.site = old; B().save(); }); }
+  if (a === 'sitesave' || a === 'sitediary') { if (!siteCtl) return; t.disabled = true;
+    siteCtl.toBlob(document.getElementById('siteimg')).then(async blob => { t.disabled = false;
+      if (a === 'sitediary') { await B().addDiaryPhoto(blob, 'Vizualizace domu na pozemku'); return B().toast('Uloženo do deníku'); }
+      const l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = `dum-na-pozemku-${new Date().toISOString().slice(0, 10)}.jpg`; document.body.append(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(l.href), 5000);
+    }).catch(() => { t.disabled = false; B().toast('Obrázek se nepodařilo vytvořit'); }); return; }
 }
 function onChange(e) {
   const t = e.target, d = D(), ds = t.dataset;
@@ -739,6 +783,8 @@ function onChange(e) {
     ui[k] = t.value; return; }
   if (ds.r3) { ui.r3[ds.r3] = t.checked; if (h3) return h3.rebuild(ui.r3); const cv = document.getElementById('dz3d'); if (cv) draw3D(cv, ui.r3); return; }
   if (ds.lookc) return setLook(ds.lookc, t.value);
+  if ('sitefile' in ds) { if (t.files[0]) siteFile(t.files[0]); return; }
+  if (ds.site) return B().persist();
   if (ds.roof) return mut(() => { d.roof[ds.roof] = Math.max(0, num(t.value)); if (d.roof.pitch > 70) d.roof.pitch = 70; });
   if (ds.price) return mut(() => { d.prices[ds.price] = Math.max(0, Math.round(num(t.value))); });
   if ('reserve' in ds) return mut(() => { d.reserve = Math.max(0, num(t.value)); });
@@ -757,10 +803,12 @@ function fitPreview() {
 function mount(root) {
   ensure(); svgEl = null;
   root.addEventListener('click', onClick); root.addEventListener('change', onChange);
-  root.addEventListener('input', e => { if (e.target.dataset.lookc && h3) { e.target.parentElement.style.setProperty('--c', e.target.value); h3.setLook({...look(), [e.target.dataset.lookc]: e.target.value}); } });
+  root.addEventListener('input', e => { const sk = e.target.dataset.site;
+    if (sk && D().site) { const v = +e.target.value; D().site[sk] = v; document.getElementById('so_' + sk).textContent = siteVal(sk, v) + SITE.find(x => x[0] === sk)[5]; siteCtl?.update(D().site); return; } if (e.target.dataset.lookc && h3) { e.target.parentElement.style.setProperty('--c', e.target.value); h3.setLook({...look(), [e.target.dataset.lookc]: e.target.value}); } });
   const svg = root.querySelector('#dzsvg'); if (svg) mountPlan(svg);
   const cv = root.querySelector('#dz3d'); if (cv) mount3D(cv);
   if (root.querySelector('#pv')) { fill3dImages(root); fitPreview(); }
+  if (root.querySelector('#site')) mountSite(root);
 }
 addEventListener('keydown', e => { if (e.key === 'Escape' && ui.draft && !document.querySelector('.modal')) { ui.draft = null; B().render(); } });
 

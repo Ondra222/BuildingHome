@@ -313,7 +313,12 @@ app.addEventListener('submit', e => {
 });
 addEventListener('hashchange', () => { render(); scrollTo(0, app.querySelector('nav').offsetTop); });
 
-window.BH = {get S() { return S; }, save, persist, render, toast, form, esc, kc};
+async function addDiaryPhoto(blob, text) {
+  const d = {id: uid(), date: today, text, photos: []};
+  if (idbOk) { const id = uid(); await DB.put('photos', id, blob); d.photos.push({id}); } else d.photos.push({src: await blobToData(blob)});
+  S.diary.push(d); save();
+}
+window.BH = {get S() { return S; }, get idbOk() { return idbOk; }, DB, save, persist, render, toast, form, esc, kc, shrink, photoUrl, addDiaryPhoto, uid};
 load().then(render);
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 }

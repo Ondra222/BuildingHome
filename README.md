@@ -21,7 +21,7 @@ Stavebník nemá mít rozpočet v Excelu, kontakty v telefonu, fotky v galerii a
 | **Harmonogram** | Etapy stavby s termíny, časovou osou (Gantt) a úkoly uvnitř etap. |
 | **Řemeslníci** | Kontakty, profese, stav (poptáno → nabídka → domluveno → hotovo), nabídnutá cena a kolik už jim bylo zaplaceno. |
 | **Deník** | Zápisy podle dnů s fotkami ze stavby. |
-| **Projekt** | Vlastní návrh domu: kreslení půdorysu (obvodové a nosné zdi, příčky, okna, dveře, místnosti s plochou) po podlažích, návrh kanalizace (potrubí DN 40–110, zařizovací předměty) a elektroinstalace (zásuvky, vypínače, světla, rozvaděč, okruhy s jističi, kabely). 3D model ve WebGL (Three.js) se stíny, texturami, okny s rámy a sklem, volbou střechy (sedlová, bungalov, valbová, stanová, pultová, plochá) a barev omítky, střechy, oken a soklu. Výkaz výměr a orientační cena hrubé stavby po částech s upravitelnými jednotkovými cenami a převodem do plánu rozpočtu. Tisk sady výkresů A4 do PDF (technická zpráva, půdorysy, kanalizace, elektro, 3D pohled, výkaz výměr s razítkem). |
+| **Projekt** | Vlastní návrh domu: kreslení půdorysu (obvodové a nosné zdi, příčky, okna, dveře, místnosti s plochou) po podlažích, návrh kanalizace (potrubí DN 40–110, zařizovací předměty) a elektroinstalace (zásuvky, vypínače, světla, rozvaděč, okruhy s jističi, kabely). 3D model ve WebGL (Three.js) se stíny, texturami, okny s rámy a sklem, volbou střechy (sedlová, bungalov, valbová, stanová, pultová, plochá) a barev omítky, střechy, oken a soklu. Záložka Na pozemku vloží dům do fotky pozemku (posun prstem, otočení a zvětšení dvěma prsty, náklon a šířka záběru, směr slunce se stínem) a výsledek uloží jako obrázek nebo do deníku. Výkaz výměr a orientační cena hrubé stavby po částech s upravitelnými jednotkovými cenami a převodem do plánu rozpočtu. Tisk sady výkresů A4 do PDF (technická zpráva, půdorysy, kanalizace, elektro, 3D pohled, výkaz výměr s razítkem). |
 
 Dále: záloha a obnova do souboru JSON (včetně fotek), mazání s možností vrátit, ukázková data, offline režim, tmavý režim podle systému.
 
@@ -59,7 +59,9 @@ manifest.webmanifest  instalace jako aplikace
                open: [{ id, wall, pos, type: "window|door", w, h, sill, flip, hand }],
                rooms: [{ id, name, x, y, w, h }], fix: [{ id, type, x, y, rot }],
                pipes: [{ id, dn, pts }], elec: [{ id, type, x, y, rot, circ }], cables: [{ id, circ, pts }] }],
-    roof: { type, pitch, over }, circuits: [{ id, name, jistic }], prices: { klíč: Kč }, reserve, meta
+    roof: { type, pitch, over, preset }, look: { wall, roof, frame, plinth },
+    site: { photo, x, z, rot, scale, pitch, camH, fov, sun },  // dům na fotce pozemku
+    circuits: [{ id, name, jistic }], prices: { klíč: Kč }, reserve, meta
   }
 }
 ```

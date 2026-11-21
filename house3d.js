@@ -146,7 +146,7 @@ function build(o) {
   if (o.roof && !o.inst && lim === top) roof(me, d, z, extra);
   // terén, cesta ke vchodu, stromy
   const ol0 = g.outline(d.floors[0]);
-  if (ol0) {
+  if (ol0 && !o.site) {
     const b = ol0.bb, size = Math.max(b.X - b.x, b.Y - b.y);
     if (door) {
       const {ux, uy, nx, ny} = g.dirs(door.w), cxp = door.w.x1 + ux * door.s, cyp = door.w.y1 + uy * door.s, hw = Math.max(.7, door.width / 2 + .3), t0 = door.w.t / 2;
@@ -299,4 +299,59 @@ export function snapshot(w, h) {
   placeCam(cam, S.c, S.size * 1.1, -.8, .32); R.setSize(w, h, false); R.render(S.scene, cam);
   const url = cv.toDataURL('image/png'); S.scene.traverse(m => { if (m.isMesh) m.geometry.dispose(); }); R.dispose(); R.forceContextLoss?.();
   return url;
+}
+
+/* ---------- dům vložený do fotky pozemku ---------- */
+export function mountSite(cv, P, onMove, onEnd) {
+  const g = G(), R = new THREE.WebGLRenderer({canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true});
+  R.setClearColor(0x000000, 0); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.05; R.outputColorSpace = THREE.SRGBColorSpace;
+  R.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+  const scene = new THREE.Scene(); materials.cache = materials(g.look());
+  const {me, extra} = build({roof: true, inst: false, cut: false, site: true}), house = new THREE.Group();
+  for (const m of me.meshes(materials.cache)) house.add(m); house.add(extra);
+  const bb = new THREE.Box3().setFromObject(house), c = bb.getCenter(new THREE.Vector3()), size = Math.max(6, bb.getSize(new THREE.Vector3()).length());
+  house.position.set(-c.x, -GROUND, -c.z);
+  const pivot = new THREE.Group(); pivot.add(house); scene.add(pivot);
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(size * 4, size * 4), new THREE.ShadowMaterial({opacity: .4})); catcher.rotation.x = -Math.PI / 2; catcher.receiveShadow = true; scene.add(catcher);
+  scene.add(new THREE.HemisphereLight('#e3eeff', '#6b6a55', 1.15));
+  const sun = new THREE.DirectionalLight('#fff3df', 2.4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  const sc = sun.shadow.camera; sc.left = sc.bottom = -size; sc.right = sc.top = size; sc.near = .5; sc.far = size * 5; sun.shadow.bias = -.0004; sun.shadow.normalBias = .03;
+  scene.add(sun, sun.target);
+  const cam = new THREE.PerspectiveCamera(50, 1, .1, 3000), rc = new THREE.Raycaster(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const apply = () => {
+    const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+    cam.aspect = w / h; cam.fov = 2 * Math.atan(Math.tan((P.fov || 68) * Math.PI / 360) / cam.aspect) * 180 / Math.PI; cam.updateProjectionMatrix();
+    cam.position.set(0, P.camH, 0); cam.rotation.set(-(P.pitch || 0) * Math.PI / 180, 0, 0, 'YXZ');
+    pivot.position.set(P.x, 0, P.z); pivot.rotation.y = (P.rot || 0) * Math.PI / 180; pivot.scale.setScalar((P.scale || 100) / 100);
+    catcher.position.set(P.x, 0, P.z);
+    const a = (P.sun ?? 35) * Math.PI / 180, dd = size * 1.5; sun.position.set(P.x + Math.sin(a) * dd, dd * 1.1, P.z + Math.cos(a) * dd); sun.target.position.set(P.x, 0, P.z);
+    R.render(scene, cam);
+  };
+  const fit = () => { R.setSize(cv.clientWidth, cv.clientHeight, false); apply(); };
+  const ro = new ResizeObserver(fit); ro.observe(cv); fit();
+  const hit = (cx, cy) => { const r = cv.getBoundingClientRect(); rc.setFromCamera(new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1), cam); return rc.ray.intersectPlane(ground, new THREE.Vector3()); };
+  const pts = new Map(); let drag = null, two = null;
+  const pair = () => { const [a, b] = [...pts.values()]; return {d: Math.hypot(a[0] - b[0], a[1] - b[1]), ang: Math.atan2(b[1] - a[1], b[0] - a[0])}; };
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2) { drag = null; two = {...pair(), scale: P.scale, rot: P.rot}; }
+    else { const h = hit(e.clientX, e.clientY); drag = h ? {dx: P.x - h.x, dz: P.z - h.z} : null; } });
+  cv.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (two && pts.size === 2) { const q = pair(); P.scale = Math.max(40, Math.min(250, Math.round(two.scale * q.d / two.d))); P.rot = Math.round(((two.rot - (q.ang - two.ang) * 180 / Math.PI) % 360 + 360) % 360); }
+    else if (drag) { const h = hit(e.clientX, e.clientY); if (!h) return; P.x = h.x + drag.dx; P.z = Math.min(-3, h.z + drag.dz); }
+    else return;
+    apply(); onMove({x: P.x, z: P.z, scale: P.scale, rot: P.rot}); });
+  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) two = null; if (!pts.size) { drag = null; onEnd?.(); } };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); if (e.shiftKey) P.rot = Math.round(((P.rot + e.deltaY * .2) % 360 + 360) % 360); else P.scale = Math.max(40, Math.min(250, Math.round(P.scale * Math.exp(-e.deltaY * .001)))); apply(); onMove({scale: P.scale, rot: P.rot}); clearTimeout(cv._wt); cv._wt = setTimeout(() => onEnd?.(), 400); }, {passive: false});
+  return {
+    update(np) { Object.assign(P, np); apply(); },
+    dispose() { ro.disconnect(); scene.traverse(m => { if (m.isMesh) m.geometry.dispose(); }); R.dispose(); R.forceContextLoss?.(); },
+    async toBlob(img) { // fotka v plném rozlišení + dům
+      const W = img.naturalWidth, H = img.naturalHeight, w0 = cv.clientWidth, h0 = cv.clientHeight, pr = R.getPixelRatio();
+      R.setPixelRatio(1); R.setSize(W, H, false); const a0 = cam.aspect; apply.call(null); cam.aspect = W / H; cam.updateProjectionMatrix(); R.render(scene, cam);
+      const out = document.createElement('canvas'); out.width = W; out.height = H; const x = out.getContext('2d'); x.drawImage(img, 0, 0, W, H); x.drawImage(cv, 0, 0, W, H);
+      R.setPixelRatio(pr); R.setSize(w0, h0, false); cam.aspect = a0; apply();
+      return new Promise((ok, no) => out.toBlob(b => b ? ok(b) : no(), 'image/jpeg', .9));
+    },
+  };
 }
