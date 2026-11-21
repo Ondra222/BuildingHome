@@ -92,6 +92,9 @@ label{display:block;font-size:14px;font-weight:600;margin:10px 0 4px}
 .dz3d{border:1px solid var(--line);border-radius:10px;overflow:hidden;height:min(62vh,560px)}
 #dz3d{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
 .dzform{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0 14px}.dzform select{margin-top:4px}
+.roofs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:6px 0 4px}
+.roofb{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px;background:transparent;color:var(--ink);border:1px solid var(--line)}
+.roofb svg{width:56px;height:35px;color:var(--mute)}.roofb.on{border:2px solid var(--acc);background:var(--panel)}.roofb.on svg{color:var(--acc)}
 /* výkresy */
 .pv{color-scheme:light;--z:.4;display:grid;gap:14px;margin-top:16px}
 .pv .psheet{zoom:var(--z);box-shadow:0 0 0 1px #ccc}

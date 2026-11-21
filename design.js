@@ -46,7 +46,17 @@ const PRICES = [ // klíč, popis, jednotka, skupina, výchozí cena (Kč vč. 1
   ['revize', 'Výchozí revize elektro', 'ks', 'el', 6000],
 ];
 const GROUPS = {zaklady: 'Zemní práce a základy', zdi: 'Zdivo, věnce a stropy', strecha: 'Střecha', okna: 'Okna a vchodové dveře', kan: 'Kanalizace', el: 'Elektroinstalace'};
-const ROOF = {sedlova: 'Sedlová', valbova: 'Valbová', pultova: 'Pultová', plocha: 'Plochá'};
+const ROOF = {sedlova: 'Sedlová', valbova: 'Valbová', stanova: 'Stanová', pultova: 'Pultová', plocha: 'Plochá'};
+const ROOFP = [ // předvolby tvaru střechy
+  {k: 'sedlova', l: 'Sedlová', type: 'sedlova', pitch: 40, ic: 'M8 25L32 4L56 25Z'},
+  {k: 'bungalov', l: 'Bungalov', type: 'valbova', pitch: 22, ic: 'M6 25L20 15H44L58 25Z'},
+  {k: 'valbova', l: 'Valbová', type: 'valbova', pitch: 35, ic: 'M6 25L22 8H42L58 25Z'},
+  {k: 'stanova', l: 'Stanová', type: 'stanova', pitch: 30, ic: 'M6 25L32 7L58 25Z'},
+  {k: 'pultova', l: 'Pultová', type: 'pultova', pitch: 8, ic: 'M8 25V12L56 19V25Z'},
+  {k: 'plocha', l: 'Plochá', type: 'plocha', pitch: 0, ic: 'M9 25V20H55V25Z'},
+];
+const roofPreset = r => r.preset || (r.type === 'valbova' && r.pitch <= 25 ? 'bungalov' : r.type);
+const roofLabel = r => (ROOFP.find(x => x.k === roofPreset(r)) || {l: ROOF[r.type]}).l;
 
 /* ---------- výchozí a ukázkový návrh ---------- */
 const defCirc = () => [['Světla', 'B10'], ['Zásuvky obytné místnosti', 'B16'], ['Zásuvky kuchyň', 'B16'], ['Koupelna', 'B16'], ['Sporák 400 V', 'B16/3'], ['Pračka, technická m.', 'B16']].map(([n, j], i) => ({id: i + 1, name: n, jistic: j}));
@@ -276,11 +286,13 @@ function view() {
      <div class="dzread" id="dzread" ${ui.draft ? '' : 'hidden'}><span id="dzlen"></span><button data-dz="finish">Ukončit</button><button class="ghost" data-dz="cancel">Zrušit</button></div></div>
     ${t === 'stavba' ? summaryStavba() : t === 'odpady' ? summaryOdpady() : summaryElektro()}`;
   } else if (t === '3d') {
-    body = `${floorBar(true)}<div class="dz3d"><canvas id="dz3d" aria-label="3D model domu"></canvas></div>
-    <div class="dztools">${[['roof', 'Střecha'], ['inst', 'Instalace (skryje střechu)'], ['cut', 'Jen do vybraného podlaží']].map(([k, l]) => `<label class="chk"><input type="checkbox" data-r3="${k}" ${ui.r3[k] ? 'checked' : ''}>${l}</label>`).join('')}</div>
-    <p class="mute">Tažením otáčíte, kolečkem nebo dvěma prsty přibližujete. Model se skládá z půdorysů všech podlaží a nastavení střechy.</p>
-    <h2 style="margin-top:20px">Střecha</h2>
-    <div class="dzform">${sel('rtype', Object.entries(ROOF), d.roof.type, 'Tvar')}<label>Sklon (°)<input data-roof="pitch" inputmode="decimal" value="${d.roof.pitch}"></label><label>Přesah (m)<input data-roof="over" inputmode="decimal" value="${d.roof.over}"></label></div>`;
+    const act = roofPreset(d.roof);
+    body = `<div class="roofs" role="group" aria-label="Tvar střechy">${ROOFP.map(r => `<button class="roofb ${act === r.k ? 'on' : ''}" data-roofp="${r.k}" aria-pressed="${act === r.k}">
+      <svg viewBox="0 0 64 40" aria-hidden="true"><rect x="12" y="24" width="40" height="14" fill="currentColor" opacity=".25"/><path d="${r.ic}" fill="currentColor"/></svg><span>${r.l}</span></button>`).join('')}</div>
+    <div class="dzform">${d.roof.type === 'plocha' ? '' : `<label>Sklon střechy (°)<input data-roof="pitch" inputmode="decimal" value="${d.roof.pitch}"></label>`}<label>Přesah střechy (m)<input data-roof="over" inputmode="decimal" value="${d.roof.over}"></label></div>
+    ${floorBar(true)}<div class="dz3d"><canvas id="dz3d" aria-label="3D model domu"></canvas></div>
+    <div class="dztools">${[['roof', 'Zobrazit střechu'], ['inst', 'Instalace (skryje střechu)'], ['cut', 'Jen do vybraného podlaží']].map(([k, l]) => `<label class="chk"><input type="checkbox" data-r3="${k}" ${ui.r3[k] ? 'checked' : ''}>${l}</label>`).join('')}</div>
+    <p class="mute">Tažením otáčíte, kolečkem nebo dvěma prsty přibližujete. Tvar a sklon střechy se promítne i do ceny a výkresů.</p>`;
   } else if (t === 'cena') body = vCena();
   else body = vVykresy();
   return `<div class="dz" id="dz"><div class="row"><h2 style="margin:0">Projekt domu</h2>
@@ -363,7 +375,7 @@ function printDoc(preview) {
   out.push(`<section class="psheet"><h3>Technická zpráva (souhrn návrhu)</h3><div class="cols">
   <table class="dzt"><tbody><tr><td>Počet nadzemních podlaží</td><td class="amt">${d.floors.length}</td></tr><tr><td>Zastavěná plocha</td><td class="amt">${m2(c.zast)} m²</td></tr>
   <tr><td>Podlahová plocha místností</td><td class="amt">${m2(c.uzit)} m²</td></tr><tr><td>Obestavěný prostor (odhad)</td><td class="amt">${m2(c.obest)} m³</td></tr>
-  <tr><td>Konstrukční výška podlaží</td><td class="amt">${d.floors.map(f => m2(f.h)).join(' / ')} m</td></tr><tr><td>Střecha</td><td class="amt">${ROOF[d.roof.type]}${d.roof.type === 'plocha' ? '' : ', sklon ' + d.roof.pitch + '°'}, přesah ${m2(d.roof.over)} m</td></tr>
+  <tr><td>Konstrukční výška podlaží</td><td class="amt">${d.floors.map(f => m2(f.h)).join(' / ')} m</td></tr><tr><td>Střecha</td><td class="amt">${roofLabel(d.roof)}${d.roof.type === 'plocha' ? '' : ', sklon ' + d.roof.pitch + '°'}, přesah ${m2(d.roof.over)} m</td></tr>
   <tr><td>Výška hřebene nad terénem (odhad)</td><td class="amt">${m2(c.H + .3 + c.rh)} m</td></tr><tr><td>Obvodové zdi</td><td class="amt">tl. ${[...new Set(d.floors.flatMap(f => f.walls.filter(w => w.kind === 'ext').map(w => m2(w.t * 100))))].join(', ') || '–'} cm</td></tr></tbody></table>
   <table class="dzt"><thead><tr><th>Podlaží</th><th>Místnost</th><th class="amt">Plocha</th></tr></thead><tbody>${c.rooms.map(r => `<tr><td>${esc(r.f)}</td><td>${esc(r.n)}</td><td class="amt">${m2(r.a)} m²</td></tr>`).join('')}</tbody></table></div>
   <p class="small">Návrh zpracovaný stavebníkem jako podklad pro projektanta. Nenahrazuje projektovou dokumentaci pro povolení stavby, kterou zpracovává autorizovaná osoba.</p>${stamp('Technická zpráva', n++)}</section>`);
@@ -443,6 +455,9 @@ function faces3D(o) {
         const k = along ? [P(x0, y0, z + rh), P(x1, y0, z + rh), P(x1, y1, z), P(x0, y1, z)] : [P(x0, y0, z + rh), P(x0, y1, z + rh), P(x1, y1, z), P(x1, y0, z)]; quad(k, c);
         if (along) { quad([P(b.x, b.y, z), P(b.x, b.y, z + rh), P(b.x, b.Y, z)], g); quad([P(b.X, b.y, z), P(b.X, b.y, z + rh), P(b.X, b.Y, z)], g); quad([P(b.x, b.y, z), P(b.X, b.y, z), P(b.X, b.y, z + rh), P(b.x, b.y, z + rh)], g); }
         else { quad([P(b.x, b.y, z), P(b.x, b.y, z + rh), P(b.X, b.y, z)], g); quad([P(b.x, b.Y, z), P(b.x, b.Y, z + rh), P(b.X, b.Y, z)], g); quad([P(b.x, b.y, z), P(b.x, b.Y, z), P(b.x, b.Y, z + rh), P(b.x, b.y, z + rh)], g); }
+      } else if (r.type === 'stanova') {
+        const a = P((x0 + x1) / 2, (y0 + y1) / 2, z + rh);
+        quad([P(x0, y0, z), P(x1, y0, z), a], c); quad([P(x1, y0, z), P(x1, y1, z), a], c); quad([P(x1, y1, z), P(x0, y1, z), a], c); quad([P(x0, y1, z), P(x0, y0, z), a], c);
       } else if (along) {
         const ym = (y0 + y1) / 2, hip = r.type === 'valbova' ? (y1 - y0) / 2 : 0;
         quad([P(x0, y0, z), P(x1, y0, z), P(x1 - hip, ym, z + rh), P(x0 + hip, ym, z + rh)], c); quad([P(x0, y1, z), P(x1, y1, z), P(x1 - hip, ym, z + rh), P(x0 + hip, ym, z + rh)], c);
@@ -669,6 +684,7 @@ function edit(k, id) {
 function onClick(e) {
   const t = e.target.closest('button,[data-dtab]'); if (!t) return;
   const d = D(), ds = t.dataset;
+  if (ds.roofp) { const r = ROOFP.find(x => x.k === ds.roofp); return mut(() => { Object.assign(d.roof, {type: r.type, pitch: r.pitch, preset: r.k}); }); }
   if (ds.dtab) { ui.tab = ds.dtab; ui.draft = null; return B().render(); }
   if (ds.tool) { ui.tool = ds.tool; ui.draft = null; return B().render(); }
   if (ds.floor) { ui.floor = +ds.floor; ui.draft = null; return B().render(); }
