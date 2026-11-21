@@ -1,0 +1,11 @@
+{
+  "name": "Stavba domu",
+  "short_name": "Stavba",
+  "description": "Rozpočet, harmonogram, řemeslníci a stavební deník",
+  "lang": "cs",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fbfaf7",
+  "theme_color": "#ef5f0d",
+  "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}

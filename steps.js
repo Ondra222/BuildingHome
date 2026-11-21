@@ -1,0 +1,63 @@
+// Postup stavby rodinného domu krok za krokem.
+// Obecný přehled podle stavebního zákona č. 283/2021 Sb. (stav k listopadu 2026).
+// Každý krok má stabilní id, aby se zaškrtnutí neztratilo při úpravě textů.
+window.STEPS = [
+  {id: 'p1', name: 'Příprava a financování', steps: [
+    ['p1a', 'Sepsat, co od domu chcete', 'Počet lidí a pokojů, pracovna, garáž, zahrada, bezbariérovost, energetický standard.'],
+    ['p1b', 'Stanovit rozpočet včetně rezervy', 'Počítejte s rezervou 10–15 % na nečekané práce a zdražení.'],
+    ['p1c', 'Ověřit financování', 'Předschválení hypotéky nebo úvěru, vlastní zdroje, případné dotace (např. Nová zelená úsporám).'],
+    ['p1d', 'Najít pozemek a ověřit územní plán', 'Na obci nebo v územním plánu ověřte, že je pozemek zastavitelný a jaké má regulativy (výška, zastavěnost, tvar střechy).'],
+    ['p1e', 'Prověřit sítě a přístup', 'Voda, kanalizace, elektřina, plyn, příjezd z veřejné cesty. Bez nich počítejte se studnou, ČOV nebo jímkou.'],
+    ['p1f', 'Zkontrolovat list vlastnictví', 'Věcná břemena, zástavy, předkupní práva, ochranná pásma.'],
+    ['p1g', 'Koupit pozemek', 'Kupní smlouva, úschova peněz, návrh na vklad do katastru nemovitostí.'],
+  ]},
+  {id: 'p2', name: 'Projekt a povolení záměru', steps: [
+    ['p2a', 'Geodetické zaměření pozemku', 'Polohopis a výškopis jako podklad pro projektanta.'],
+    ['p2b', 'Průzkumy pozemku', 'Inženýrsko-geologický průzkum, radonový průzkum, případně hydrogeologie kvůli vsakování.'],
+    ['p2c', 'Vybrat projektanta', 'Dokumentaci musí zpracovat autorizovaný architekt nebo inženýr.'],
+    ['p2d', 'Studie domu', 'Dispozice, vzhled a umístění na pozemku. Levný okamžik na změny.'],
+    ['p2e', 'Dokumentace pro povolení záměru', 'Projektant ji zpracuje podle vyhlášky k stavebnímu zákonu.'],
+    ['p2f', 'Vyjádření správců sítí a stanoviska úřadů', 'Elektřina, voda, plyn, telekomunikace, životní prostředí, hasiči… Chybějící stanoviska si může vyžádat stavební úřad, lhůta ale mezitím neběží.'],
+    ['p2g', 'Podat žádost o povolení záměru', 'Jedno řízení místo dřívějšího územního a stavebního. Běžný rodinný dům je jednoduchá stavba: úřad má rozhodnout do 30 dnů, poplatek je 5 000 Kč.'],
+    ['p2h', 'Povolení nabude právní moci', 'Povolení platí 2 roky; když v té době začnete stavět, platnost se prodlužuje.'],
+    ['p2i', 'Dokumentace pro provádění stavby', 'Podrobný projekt pro řemeslníky: skladby, detaily, statika, TZB. Musí být na stavbě.'],
+  ]},
+  {id: 'p3', name: 'Výběr dodavatelů a příprava stavby', steps: [
+    ['p3a', 'Rozpočet a výkaz výměr', 'Podle prováděcí dokumentace, aby šly nabídky porovnat.'],
+    ['p3b', 'Poptat a porovnat nabídky', 'Alespoň 3 nabídky na hlavní práce. Zapisujte si je do záložky Řemeslníci.'],
+    ['p3c', 'Smlouvy o dílo', 'Cena, termíny, platby podle etap, pozastávka, záruky, sankce.'],
+    ['p3d', 'Stavbyvedoucí a technický dozor', 'Stavbu musí řídit stavbyvedoucí; technický dozor stavebníka hlídá kvalitu za vás.'],
+    ['p3e', 'Staveništní přípojky', 'Staveništní rozvaděč, voda, oplocení, místo pro materiál.'],
+    ['p3f', 'Oznámit zahájení stavby', 'Stavebnímu úřadu před zahájením; na staveniště vyvěsit štítek o povolení.'],
+    ['p3g', 'Vytyčení stavby geodetem', 'Podle ověřené dokumentace.'],
+    ['p3h', 'Založit stavební deník', 'Vede ho stavbyvedoucí. Vlastní poznámky a fotky si ukládejte do záložky Deník.'],
+  ]},
+  {id: 'p4', name: 'Hrubá stavba', steps: [
+    ['p4a', 'Výkopy a základy', 'Základové pasy nebo deska, uzemnění, chráničky pro přípojky.'],
+    ['p4b', 'Hydroizolace a ochrana proti radonu', 'Detail, který se později nedá opravit. Nechte ho zkontrolovat dozorem a vyfotit.'],
+    ['p4c', 'Obvodové a nosné zdi', ''],
+    ['p4d', 'Stropy a věnce', ''],
+    ['p4e', 'Krov a střecha', 'Krov, pojistná hydroizolace, krytina, klempířské prvky, okapy.'],
+    ['p4f', 'Okna a vchodové dveře', 'Stavba je pak uzavřená a dá se pracovat i v zimě.'],
+    ['p4g', 'Kontrolní prohlídky úřadu', 'Pokud je stavební úřad v povolení stanovil, ohlaste dosažení dané fáze.'],
+  ]},
+  {id: 'p5', name: 'Vnitřní práce a fasáda', steps: [
+    ['p5a', 'Rozvody elektro, vody, kanalizace a topení', 'Před omítkami vše vyfotit s metrem – později najdete vedení ve zdi.'],
+    ['p5b', 'Zdroj tepla a větrání', 'Kotel nebo tepelné čerpadlo, rekuperace, komín.'],
+    ['p5c', 'Omítky a potěry', 'Pozor na vysychání před pokládkou podlah.'],
+    ['p5d', 'Zateplení a fasáda', ''],
+    ['p5e', 'Obklady, dlažby a podlahy', ''],
+    ['p5f', 'Kuchyně, sanita, dveře, malby', ''],
+    ['p5g', 'Venkovní úpravy', 'Terasa, zpevněné plochy, oplocení, zahrada.'],
+  ]},
+  {id: 'p6', name: 'Kolaudace a nastěhování', steps: [
+    ['p6a', 'Revize a zkoušky', 'Revize elektro, plynu, spalinových cest (komín), tlakové zkoušky vody a topení.'],
+    ['p6b', 'Průkaz energetické náročnosti budovy', 'PENB je povinný pro nový dům.'],
+    ['p6c', 'Geometrický plán', 'Geodet zaměří dům kvůli zápisu do katastru.'],
+    ['p6d', 'Požádat o kolaudaci', 'Stavební úřad posoudí, zda dům odpovídá povolení. Připravte doklady, revize a stavební deník.'],
+    ['p6e', 'Číslo popisné a zápis do katastru', 'Číslo přiděluje obec, dům se pak zapíše na list vlastnictví.'],
+    ['p6f', 'Pojištění a trvalý pobyt', 'Pojištění nemovitosti, přehlášení trvalého pobytu, smlouvy na energie.'],
+    ['p6g', 'Daňové přiznání k dani z nemovitostí', 'Podává se do 31. ledna roku následujícího po změně.'],
+    ['p6h', 'Archivovat doklady', 'Záruční listy, návody a revize – hodí se pro reklamace.'],
+  ]},
+];
