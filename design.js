@@ -55,6 +55,14 @@ const ROOFP = [ // předvolby tvaru střechy
   {k: 'pultova', l: 'Pultová', type: 'pultova', pitch: 8, ic: 'M8 25V12L56 19V25Z'},
   {k: 'plocha', l: 'Plochá', type: 'plocha', pitch: 0, ic: 'M9 25V20H55V25Z'},
 ];
+const LOOK = {wall: '#f2efe8', roof: '#3a3d40', frame: '#f5f5f5', plinth: '#5b5d5c'};
+const LOOKS = [
+  ['wall', 'Omítka', [['#f2efe8', 'Bílá'], ['#efe4c8', 'Krémová'], ['#e2cfa6', 'Písková'], ['#d8d7d2', 'Světle šedá'], ['#9fb1bd', 'Modrošedá'], ['#b9b48f', 'Olivová'], ['#c98b6b', 'Terakota'], ['#4b4e51', 'Antracit']]],
+  ['roof', 'Střecha', [['#3a3d40', 'Antracit'], ['#1f2022', 'Černá'], ['#9c3b26', 'Cihlová'], ['#7a2e22', 'Višňová'], ['#5a3a28', 'Hnědá'], ['#7b7f82', 'Šedá'], ['#8e5a3a', 'Měděná']]],
+  ['frame', 'Okna', [['#f5f5f5', 'Bílá'], ['#3b3e42', 'Antracit'], ['#1e1e1e', 'Černá'], ['#a8743f', 'Zlatý dub'], ['#6e4a2e', 'Ořech']]],
+  ['plinth', 'Sokl', [['#5b5d5c', 'Tmavě šedá'], ['#3a3c3e', 'Antracit'], ['#8d8a82', 'Kamenná'], ['#b5a48a', 'Pískovec']]],
+];
+const look = () => ({...LOOK, ...(D().look || {})});
 const roofPreset = r => r.preset || (r.type === 'valbova' && r.pitch <= 25 ? 'bungalov' : r.type);
 const roofLabel = r => (ROOFP.find(x => x.k === roofPreset(r)) || {l: ROOF[r.type]}).l;
 
@@ -290,9 +298,12 @@ function view() {
     body = `<div class="roofs" role="group" aria-label="Tvar střechy">${ROOFP.map(r => `<button class="roofb ${act === r.k ? 'on' : ''}" data-roofp="${r.k}" aria-pressed="${act === r.k}">
       <svg viewBox="0 0 64 40" aria-hidden="true"><rect x="12" y="24" width="40" height="14" fill="currentColor" opacity=".25"/><path d="${r.ic}" fill="currentColor"/></svg><span>${r.l}</span></button>`).join('')}</div>
     <div class="dzform">${d.roof.type === 'plocha' ? '' : `<label>Sklon střechy (°)<input data-roof="pitch" inputmode="decimal" value="${d.roof.pitch}"></label>`}<label>Přesah střechy (m)<input data-roof="over" inputmode="decimal" value="${d.roof.over}"></label></div>
-    ${floorBar(true)}<div class="dz3d"><canvas id="dz3d" aria-label="3D model domu"></canvas></div>
+    ${floorBar(true)}<div class="dz3d"><canvas id="dz3d" aria-label="3D model domu"></canvas>
+     <div class="dzfloat3">${[['reset', 'Výchozí'], ['front', 'Zepředu'], ['side', 'Z boku'], ['top', 'Shora']].map(([k, l]) => `<button class="ghost" data-view="${k}">${l}</button>`).join('')}</div></div>
+    <h3 class="dzh3">Barvy domu</h3>
+    <div class="looks">${LOOKS.map(([k, l, opts]) => { const v = look()[k]; return `<div class="lookrow"><b>${l}</b><div class="sws">${opts.map(([c, n]) => `<button class="swb ${c === v ? 'on' : ''}" data-look="${k}" data-c="${c}" style="--c:${c}" title="${n}" aria-label="${l}: ${n}" aria-pressed="${c === v}"></button>`).join('')}<label class="swb pick" title="Vlastní barva" style="--c:${v}"><input type="color" data-lookc="${k}" value="${v}" aria-label="${l}: vlastní barva"></label></div></div>`; }).join('')}</div>
     <div class="dztools">${[['roof', 'Zobrazit střechu'], ['inst', 'Instalace (skryje střechu)'], ['cut', 'Jen do vybraného podlaží']].map(([k, l]) => `<label class="chk"><input type="checkbox" data-r3="${k}" ${ui.r3[k] ? 'checked' : ''}>${l}</label>`).join('')}</div>
-    <p class="mute">Tažením otáčíte, kolečkem nebo dvěma prsty přibližujete. Tvar a sklon střechy se promítne i do ceny a výkresů.</p>`;
+    <p class="mute">Tažením otáčíte, pravým tlačítkem nebo dvěma prsty posouváte, kolečkem nebo roztažením prstů přibližujete. Tvar a sklon střechy se promítne i do ceny a výkresů.</p>`;
   } else if (t === 'cena') body = vCena();
   else body = vVykresy();
   return `<div class="dz" id="dz"><div class="row"><h2 style="margin:0">Projekt domu</h2>
@@ -388,11 +399,12 @@ function printDoc(preview) {
   <tr class="grp"><th colspan="3">Rezerva ${d.reserve} %</th><th class="amt">${kc((c.hruba + c.inst) * c.rez)}</th></tr><tr class="grp tot"><th colspan="3">Celkem orientačně</th><th class="amt">${kc(c.total)}</th></tr></tbody></table>${stamp('Výkaz výměr', n++)}</section>`);
   return out.join('');
 }
-function fill3dImages(root) {
+async function fill3dImages(root) {
   const img = root.querySelectorAll('[data-p3d]'); if (!img.length) return;
-  const cv = document.createElement('canvas'); cv.width = 1600; cv.height = 900;
-  draw3D(cv, {roof: true, inst: false, cut: false, yaw: -.75, pitch: .45, zoom: 1}, true);
-  const u = cv.toDataURL('image/png'); img.forEach(i => i.src = u);
+  let u = null;
+  try { u = (await import('./house3d.js')).snapshot(1600, 900); } catch (e) {}
+  if (!u) { const cv = document.createElement('canvas'); cv.width = 1600; cv.height = 900; draw3D(cv, {roof: true, inst: false, cut: false, yaw: -.75, pitch: .45, zoom: 1}, true); u = cv.toDataURL('image/png'); }
+  img.forEach(i => i.src = u);
 }
 function doPrint() {
   document.getElementById('printdoc')?.remove();
@@ -427,7 +439,7 @@ function faces3D(o) {
       const ot = f.walls.filter(v => v !== w && ((Math.abs(v.x1 - x) < .02 && Math.abs(v.y1 - y) < .02) || (Math.abs(v.x2 - x) < .02 && Math.abs(v.y2 - y) < .02) || onWall(v, x, y)));
       if (!ot.length) return 0; const mx = Math.max(...ot.map(v => v.t)); return mx > w.t + .01 ? -mx / 2 : w.t / 2; };
     for (const w of f.walls) {
-      const l = L(w), col = w.kind === 'ext' ? [232, 224, 208] : w.kind === 'load' ? [214, 208, 196] : [242, 240, 234];
+      const hx = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)), LK = look(), l = L(w), col = w.kind === 'ext' ? hx(LK.wall) : w.kind === 'load' ? [214, 208, 196] : [242, 240, 234];
       const e0 = joined(w.x1, w.y1, w), e1 = joined(w.x2, w.y2, w);
       const ops = f.open.filter(x => x.wall === w.id).map(x => [Math.max(0, x.pos - x.w / 2), Math.min(l, x.pos + x.w / 2), x]).sort((a, b) => a[0] - b[0]);
       let s = 0;
@@ -448,7 +460,7 @@ function faces3D(o) {
   if (o.roof && !o.inst && lim === top) {
     const ol = outline(d.floors[top]);
     if (ol) {
-      const r = d.roof, b = ol.bb, x0 = b.x - r.over, x1 = b.X + r.over, y0 = b.y - r.over, y1 = b.Y + r.over, rh = roofH(d, b), c = [176, 84, 58], g = [232, 224, 208];
+      const r = d.roof, b = ol.bb, x0 = b.x - r.over, x1 = b.X + r.over, y0 = b.y - r.over, y1 = b.Y + r.over, rh = roofH(d, b), c = [1, 3, 5].map(i => parseInt(look().roof.slice(i, i + 2), 16)), g = [1, 3, 5].map(i => parseInt(look().wall.slice(i, i + 2), 16));
       const along = (x1 - x0) >= (y1 - y0);
       if (r.type === 'plocha') { box({x1: x0, y1: (y0 + y1) / 2, x2: x1, y2: (y0 + y1) / 2, t: y1 - y0}, 0, x1 - x0, z, z + .3, [90, 94, 90], 0, 0); }
       else if (r.type === 'pultova') {
@@ -512,7 +524,14 @@ function draw3D(cv, o, print) {
     ctx.lineWidth = ln.w * (W / 800); ctx.beginPath(); pp.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke();
   }
 }
-function mount3D(cv) {
+let h3 = null;
+async function mount3D(cv) {
+  h3 = null;
+  try { const m = await import('./house3d.js'); if (!cv.isConnected) return; h3 = m.mount(cv, ui.r3); return; }
+  catch (e) { console.warn('WebGL 3D nedostupné, použije se jednoduchý model', e); }
+  legacy3D(cv);
+}
+function legacy3D(cv) {
   const fit = () => { const r = cv.getBoundingClientRect(), k = devicePixelRatio || 1; cv.width = r.width * k; cv.height = r.height * k; draw3D(cv, ui.r3); };
   fit(); new ResizeObserver(() => fit()).observe(cv);
   const pts = new Map(); let last = null, pin = null;
@@ -685,6 +704,8 @@ function onClick(e) {
   const t = e.target.closest('button,[data-dtab]'); if (!t) return;
   const d = D(), ds = t.dataset;
   if (ds.roofp) { const r = ROOFP.find(x => x.k === ds.roofp); return mut(() => { Object.assign(d.roof, {type: r.type, pitch: r.pitch, preset: r.k}); }); }
+  if (ds.look) return setLook(ds.look, ds.c);
+  if (ds.view) return h3?.view(ds.view);
   if (ds.dtab) { ui.tab = ds.dtab; ui.draft = null; return B().render(); }
   if (ds.tool) { ui.tool = ds.tool; ui.draft = null; return B().render(); }
   if (ds.floor) { ui.floor = +ds.floor; ui.draft = null; return B().render(); }
@@ -716,11 +737,18 @@ function onChange(e) {
   if (ds.sel) { const k = ds.sel;
     if (k === 'rtype') return mut(() => { d.roof.type = t.value; });
     ui[k] = t.value; return; }
-  if (ds.r3) { ui.r3[ds.r3] = t.checked; const cv = document.getElementById('dz3d'); if (cv) draw3D(cv, ui.r3); return; }
+  if (ds.r3) { ui.r3[ds.r3] = t.checked; if (h3) return h3.rebuild(ui.r3); const cv = document.getElementById('dz3d'); if (cv) draw3D(cv, ui.r3); return; }
+  if (ds.lookc) return setLook(ds.lookc, t.value);
   if (ds.roof) return mut(() => { d.roof[ds.roof] = Math.max(0, num(t.value)); if (d.roof.pitch > 70) d.roof.pitch = 70; });
   if (ds.price) return mut(() => { d.prices[ds.price] = Math.max(0, Math.round(num(t.value))); });
   if ('reserve' in ds) return mut(() => { d.reserve = Math.max(0, num(t.value)); });
   if (ds.meta) { d.meta[ds.meta] = t.value.trim(); B().persist(); document.getElementById('pv').innerHTML = printDoc(true); fill3dImages(document.getElementById('pv')); fitPreview(); }
+}
+function setLook(k, c) {
+  const d = D(); d.look = {...look(), [k]: c}; B().persist();
+  document.querySelectorAll(`[data-look="${k}"]`).forEach(b => { const on = b.dataset.c === c; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+  const pk = document.querySelector(`[data-lookc="${k}"]`); if (pk) { pk.value = c; pk.parentElement.style.setProperty('--c', c); }
+  if (h3) h3.setLook(d.look); else { const cv = document.getElementById('dz3d'); if (cv) draw3D(cv, ui.r3); }
 }
 function fitPreview() {
   const pv = document.getElementById('pv'); if (!pv) return;
@@ -729,11 +757,12 @@ function fitPreview() {
 function mount(root) {
   ensure(); svgEl = null;
   root.addEventListener('click', onClick); root.addEventListener('change', onChange);
+  root.addEventListener('input', e => { if (e.target.dataset.lookc && h3) { e.target.parentElement.style.setProperty('--c', e.target.value); h3.setLook({...look(), [e.target.dataset.lookc]: e.target.value}); } });
   const svg = root.querySelector('#dzsvg'); if (svg) mountPlan(svg);
   const cv = root.querySelector('#dz3d'); if (cv) mount3D(cv);
   if (root.querySelector('#pv')) { fill3dImages(root); fitPreview(); }
 }
 addEventListener('keydown', e => { if (e.key === 'Escape' && ui.draft && !document.querySelector('.modal')) { ui.draft = null; B().render(); } });
 
-return {view, mount, empty, sample, calc, ensure, _ui: ui};
+return {view, mount, empty, sample, calc, ensure, _ui: ui, _geo: {D, outline, dirs, L, onWall, roofH, ui, EL, DN, CC, look}};
 })();

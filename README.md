@@ -21,13 +21,13 @@ Stavebník nemá mít rozpočet v Excelu, kontakty v telefonu, fotky v galerii a
 | **Harmonogram** | Etapy stavby s termíny, časovou osou (Gantt) a úkoly uvnitř etap. |
 | **Řemeslníci** | Kontakty, profese, stav (poptáno → nabídka → domluveno → hotovo), nabídnutá cena a kolik už jim bylo zaplaceno. |
 | **Deník** | Zápisy podle dnů s fotkami ze stavby. |
-| **Projekt** | Vlastní návrh domu: kreslení půdorysu (obvodové a nosné zdi, příčky, okna, dveře, místnosti s plochou) po podlažích, návrh kanalizace (potrubí DN 40–110, zařizovací předměty) a elektroinstalace (zásuvky, vypínače, světla, rozvaděč, okruhy s jističi, kabely). 3D model s volbou střechy (sedlová, valbová, pultová, plochá). Výkaz výměr a orientační cena hrubé stavby po částech s upravitelnými jednotkovými cenami a převodem do plánu rozpočtu. Tisk sady výkresů A4 do PDF (technická zpráva, půdorysy, kanalizace, elektro, 3D pohled, výkaz výměr s razítkem). |
+| **Projekt** | Vlastní návrh domu: kreslení půdorysu (obvodové a nosné zdi, příčky, okna, dveře, místnosti s plochou) po podlažích, návrh kanalizace (potrubí DN 40–110, zařizovací předměty) a elektroinstalace (zásuvky, vypínače, světla, rozvaděč, okruhy s jističi, kabely). 3D model ve WebGL (Three.js) se stíny, texturami, okny s rámy a sklem, volbou střechy (sedlová, bungalov, valbová, stanová, pultová, plochá) a barev omítky, střechy, oken a soklu. Výkaz výměr a orientační cena hrubé stavby po částech s upravitelnými jednotkovými cenami a převodem do plánu rozpočtu. Tisk sady výkresů A4 do PDF (technická zpráva, půdorysy, kanalizace, elektro, 3D pohled, výkaz výměr s razítkem). |
 
 Dále: záloha a obnova do souboru JSON (včetně fotek), mazání s možností vrátit, ukázková data, offline režim, tmavý režim podle systému.
 
 ## Technické řešení
 
-- **Čistý HTML, CSS a JavaScript** bez frameworku a bez build kroku. Stačí statický hosting (GitHub Pages).
+- **Čistý HTML, CSS a JavaScript** bez frameworku a bez build kroku. Jedinou knihovnou je Three.js pro 3D model, uložená přímo v `vendor/`. Stačí statický hosting (GitHub Pages).
 - **Data zůstávají v zařízení** – IndexedDB (stav aplikace a fotky jako soubory), záložně localStorage. Žádný server, žádný účet.
 - **PWA** – `manifest.webmanifest` a `sw.js` pro instalaci na plochu a práci bez signálu na stavbě.
 
@@ -37,6 +37,8 @@ styles.css            vzhled (světlý i tmavý režim)
 app.js                logika, vykreslování, úložiště, formuláře
 steps.js              obsah záložky Postup (kroky a vysvětlivky)
 design.js             záložka Projekt: editor půdorysu, odpady, elektro, 3D, cena, výkresy
+house3d.js            3D model ve WebGL (načítá se, až když otevřete 3D)
+vendor/               Three.js r170 (MIT) uložené v repozitáři kvůli offline režimu
 sample.js             ukázková data
 sw.js                 offline režim
 manifest.webmanifest  instalace jako aplikace

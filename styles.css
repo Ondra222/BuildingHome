@@ -95,6 +95,16 @@ label{display:block;font-size:14px;font-weight:600;margin:10px 0 4px}
 .roofs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:6px 0 4px}
 .roofb{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px;background:transparent;color:var(--ink);border:1px solid var(--line)}
 .roofb svg{width:56px;height:35px;color:var(--mute)}.roofb.on{border:2px solid var(--acc);background:var(--panel)}.roofb.on svg{color:var(--acc)}
+.dzh3{font-size:18px;margin:16px 0 4px}.looks{display:grid;gap:8px;margin:12px 0}
+.lookrow{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:center}.lookrow b{font-size:14px}
+.sws{display:flex;flex-wrap:wrap;gap:6px}
+.swb{width:38px;height:38px;min-height:0;padding:0;border-radius:50%;background:var(--c);border:1px solid var(--line);box-shadow:inset 0 0 0 2px var(--bg);position:relative;cursor:pointer;margin:0}
+.swb.on{border:3px solid var(--acc)}
+.swb.pick{background:conic-gradient(#e33,#ec3,#3c5,#3ae,#a3e,#e33);display:grid;place-items:center}
+.swb.pick::after{content:'';width:18px;height:18px;border-radius:50%;background:var(--c);border:2px solid var(--bg)}
+.swb.pick input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;min-height:0;padding:0}
+.dz3d{position:relative}.dzfloat3{position:absolute;left:8px;top:8px;display:flex;flex-wrap:wrap;gap:6px}
+.dzfloat3 button{min-height:36px;padding:4px 10px;background:color-mix(in srgb,var(--bg) 85%,transparent);font-size:14px}
 /* výkresy */
 .pv{color-scheme:light;--z:.4;display:grid;gap:14px;margin-top:16px}
 .pv .psheet{zoom:var(--z);box-shadow:0 0 0 1px #ccc}
