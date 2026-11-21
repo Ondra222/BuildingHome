@@ -21,6 +21,7 @@ Stavebník nemá mít rozpočet v Excelu, kontakty v telefonu, fotky v galerii a
 | **Harmonogram** | Etapy stavby s termíny, časovou osou (Gantt) a úkoly uvnitř etap. |
 | **Řemeslníci** | Kontakty, profese, stav (poptáno → nabídka → domluveno → hotovo), nabídnutá cena a kolik už jim bylo zaplaceno. |
 | **Deník** | Zápisy podle dnů s fotkami ze stavby. |
+| **Projekt** | Vlastní návrh domu: kreslení půdorysu (obvodové a nosné zdi, příčky, okna, dveře, místnosti s plochou) po podlažích, návrh kanalizace (potrubí DN 40–110, zařizovací předměty) a elektroinstalace (zásuvky, vypínače, světla, rozvaděč, okruhy s jističi, kabely). 3D model s volbou střechy (sedlová, valbová, pultová, plochá). Výkaz výměr a orientační cena hrubé stavby po částech s upravitelnými jednotkovými cenami a převodem do plánu rozpočtu. Tisk sady výkresů A4 do PDF (technická zpráva, půdorysy, kanalizace, elektro, 3D pohled, výkaz výměr s razítkem). |
 
 Dále: záloha a obnova do souboru JSON (včetně fotek), mazání s možností vrátit, ukázková data, offline režim, tmavý režim podle systému.
 
@@ -35,6 +36,7 @@ index.html            kostra stránky
 styles.css            vzhled (světlý i tmavý režim)
 app.js                logika, vykreslování, úložiště, formuláře
 steps.js              obsah záložky Postup (kroky a vysvětlivky)
+design.js             záložka Projekt: editor půdorysu, odpady, elektro, 3D, cena, výkresy
 sample.js             ukázková data
 sw.js                 offline režim
 manifest.webmanifest  instalace jako aplikace
@@ -49,7 +51,14 @@ manifest.webmanifest  instalace jako aplikace
   expenses: [{ id, date, desc, stage, amount, who, paid }],
   contacts: [{ id, name, trade, phone, email, price, status, note }],
   diary:    [{ id, date, text, photos: [{ id }] }],
-  steps:    { "p2g": true, … }   // splněné kroky postupu
+  steps:    { "p2g": true, … },  // splněné kroky postupu
+  design: {                       // záložka Projekt, souřadnice v metrech
+    floors: [{ id, name, h, walls: [{ id, x1, y1, x2, y2, kind: "ext|load|part", t }],
+               open: [{ id, wall, pos, type: "window|door", w, h, sill, flip, hand }],
+               rooms: [{ id, name, x, y, w, h }], fix: [{ id, type, x, y, rot }],
+               pipes: [{ id, dn, pts }], elec: [{ id, type, x, y, rot, circ }], cables: [{ id, circ, pts }] }],
+    roof: { type, pitch, over }, circuits: [{ id, name, jistic }], prices: { klíč: Kč }, reserve, meta
+  }
 }
 ```
 
@@ -83,5 +92,7 @@ Nasazení: v nastavení repozitáře zapnout **Pages → Deploy from branch → 
 - Kontrolní seznamy převzetí prací po řemeslnících
 
 ## Upozornění
+
+Záložka Projekt slouží jako návrh a podklad pro projektanta. Dokumentaci pro povolení stavby musí zpracovat autorizovaná osoba, elektro a kanalizaci projektant příslušné profese. Orientační cena vychází z výměr výkresu a upravitelných jednotkových cen; výchozí ceny jsou hrubý odhad.
 
 Záložka Postup je obecný přehled podle stavebního zákona č. 283/2021 Sb. ve znění k listopadu 2026. Novela schválená v září 2026 mění povolování od roku 2028. Lhůty, poplatky a potřebné doklady si vždy ověřte na příslušném stavebním úřadě.

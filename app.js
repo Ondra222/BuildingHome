@@ -42,14 +42,14 @@ async function load() {
   S.steps ||= {};
   if (S.sample && !st) for (const s of allSteps()) if (/^p[123]/.test(s.id) || ['p4a', 'p4b', 'p4c'].includes(s.id)) S.steps[s.id] = true;
 }
-function save() {
+function persist() {
   S.savedAt = Date.now();
   const copy = JSON.parse(JSON.stringify(S));
   (idbOk ? DB.put('kv', 'state', copy) : Promise.reject()).catch(() => {
     try { localStorage.setItem('stavba-domu', JSON.stringify(S)); } catch (e) { toast('Data se nepodařilo uložit – zkopírujte si zálohu.'); }
   });
-  render();
 }
+function save() { persist(); render(); }
 
 /* ---------- výkres domu ---------- */
 function house() {
@@ -75,7 +75,7 @@ function house() {
 }
 
 /* ---------- pohledy ---------- */
-const TABS = [['prehled', 'Přehled'], ['postup', 'Postup'], ['rozpocet', 'Rozpočet'], ['harmonogram', 'Harmonogram'], ['remeslnici', 'Řemeslníci'], ['denik', 'Deník']];
+const TABS = [['prehled', 'Přehled'], ['postup', 'Postup'], ['rozpocet', 'Rozpočet'], ['harmonogram', 'Harmonogram'], ['remeslnici', 'Řemeslníci'], ['denik', 'Deník'], ['projekt', 'Projekt']];
 const view = () => TABS.some(t => t[0] === location.hash.slice(1)) ? location.hash.slice(1) : 'prehled';
 
 function hero() {
@@ -173,8 +173,9 @@ function vDenik() {
 function render() {
   const v = view(), y = scrollY;
   app.innerHTML = hero() + `<nav><div class="scroll">${TABS.map(t => `<a href="#${t[0]}" class="${t[0] === v ? 'on' : ''}">${t[1]}</a>`).join('')}</div></nav>
-  <main class="band"><div class="wrap" style="max-width:900px">${({prehled: vPrehled, postup: vPostup, rozpocet: vRozpocet, harmonogram: vHarm, remeslnici: vRem, denik: vDenik})[v]()}</div></main>
+  <main class="band"><div class="wrap" style="max-width:${v === 'projekt' ? 1240 : 900}px">${({prehled: vPrehled, postup: vPostup, rozpocet: vRozpocet, harmonogram: vHarm, remeslnici: vRem, denik: vDenik, projekt: () => DESIGN.view()})[v]()}</div></main>
   ${S.sample ? '<p class="mute" style="text-align:center;padding:0 16px 30px">Ukázková data – vymažete je na záložce Přehled.</p>' : ''}`;
+  if (v === 'projekt') DESIGN.mount(app.querySelector('#dz'));
   scrollTo(0, y);
   for (const img of app.querySelectorAll('img[data-pid]')) photoUrl(img.dataset.pid).then(u => { if (u) img.src = u; });
 }
@@ -193,6 +194,7 @@ function form(title, fields, vals, onSave, onDel) {
     const inp = f.type === 'select' ? `<select id="${id}" name="${f.k}">${f.opts.map(o => `<option value="${esc(o[0])}" ${o[0] === v ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`
       : f.type === 'area' ? `<textarea id="${id}" name="${f.k}" rows="5">${esc(v)}</textarea>`
       : f.type === 'file' ? `<input id="${id}" name="${f.k}" type="file" accept="image/*" multiple>`
+      : f.type === 'dec' ? `<input id="${id}" name="${f.k}" type="text" inputmode="decimal" value="${esc(v)}">`
       : `<input id="${id}" name="${f.k}" type="${f.type || 'text'}" ${f.type === 'number' ? 'inputmode="numeric" min="0" step="1"' : ''} value="${esc(v)}" ${f.req ? 'required' : ''}>`;
     return `<label for="${id}">${f.l}</label>${inp}`;
   }).join('')}
@@ -290,7 +292,7 @@ app.addEventListener('click', e => {
   if (t.id === 'nm') form('Název stavby', [{k: 'name', l: 'Název', req: 1}], S, o => { S.name = o.name; save(); });
   if (t.id === 'clr') {
     const old = JSON.stringify(S);
-    Object.assign(S, {sample: false, name: 'Můj dům', expenses: [], contacts: [], diary: [], steps: {}});
+    Object.assign(S, {sample: false, name: 'Můj dům', expenses: [], contacts: [], diary: [], steps: {}, design: DESIGN.empty()});
     S.stages.forEach(s => Object.assign(s, {done: false, start: '', end: '', plan: 0, tasks: []}));
     save(); toast('Ukázková data vymazána', () => { S = JSON.parse(old); save(); });
   }
@@ -311,6 +313,7 @@ app.addEventListener('submit', e => {
 });
 addEventListener('hashchange', () => { render(); scrollTo(0, app.querySelector('nav').offsetTop); });
 
+window.BH = {get S() { return S; }, save, persist, render, toast, form, esc, kc};
 load().then(render);
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 }

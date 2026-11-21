@@ -65,3 +65,48 @@ label{display:block;font-size:14px;font-weight:600;margin:10px 0 4px}
 .steps small{display:block;color:var(--mute);font-size:14px;margin:0 0 4px 32px}
 .steps li.d b{text-decoration:line-through;color:var(--mute)}
 .note{background:var(--panel);border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:16px}
+/* ---------- projekt domu ---------- */
+.seg{display:flex;gap:4px;overflow-x:auto;margin:14px 0;border-bottom:1px solid var(--line)}
+.seg button{flex:none;background:transparent;color:var(--mute);border:0;border-bottom:3px solid transparent;border-radius:0;padding:9px 12px}
+.seg button.on{color:var(--ink);border-color:var(--acc)}
+.dztools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+.dztools button{min-height:40px;padding:6px 12px}.dztools select{width:auto;min-height:40px}.dztools .chk{margin:0 10px 0 0}
+.dzhint{min-height:2.6em;font-size:14px}
+.dzcanvas{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;height:min(68vh,640px);background:var(--bg)}
+#dzsvg{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}
+#dzsvg [data-k]{cursor:pointer}
+.dzfloat{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
+.dzfloat button{min-height:40px;width:40px;padding:0;background:var(--bg)}
+.dzread{position:absolute;left:8px;right:8px;bottom:8px;display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--acc);border-radius:10px;padding:6px 6px 6px 12px}
+.dzread span{flex:1;font-weight:600;font-variant-numeric:tabular-nums}.dzread button{min-height:38px}
+.dzread[hidden]{display:none}
+.dzsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:18px 0}
+.dzsum div{border-top:2px solid var(--ink);padding-top:8px}.dzsum b{display:block;font-size:24px;font-weight:800;line-height:1.15}.dzsum span{color:var(--mute);font-size:14px}
+.dzt{width:100%;border-collapse:collapse;margin:14px 0;font-size:15px}
+.dzt th,.dzt td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.dzt .amt{text-align:right}.dzt thead th{font-size:13px;color:var(--mute);font-weight:600}
+.dzt tr.grp th{background:var(--panel);font-weight:800}.dzt tr.tot th{font-size:18px;background:var(--ink);color:var(--bg)}
+.dzt input.pr{width:96px;min-height:36px;padding:4px 8px;text-align:right;display:inline-block}
+.dzt.cost{min-width:620px}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:8px;vertical-align:-1px}
+.dz3d{border:1px solid var(--line);border-radius:10px;overflow:hidden;height:min(62vh,560px)}
+#dz3d{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.dzform{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0 14px}.dzform select{margin-top:4px}
+/* výkresy */
+.pv{color-scheme:light;--z:.4;display:grid;gap:14px;margin-top:16px}
+.pv .psheet{zoom:var(--z);box-shadow:0 0 0 1px #ccc}
+.psheet{color-scheme:light;width:297mm;height:210mm;padding:9mm 10mm;position:relative;background:#fff;color:#111;overflow:hidden;font:10pt/1.4 Archivo,system-ui,sans-serif;display:flex;flex-direction:column;align-items:flex-start;gap:4mm}
+.psheet h3{margin:0;font-size:14pt}.psheet svg{display:block;max-width:100%}
+.psheet .dzt{font-size:9pt;margin:0}.psheet .dzt td,.psheet .dzt th{padding:2px 6px}.psheet .small,.psheet .dzt.small{font-size:8pt}
+.psheet .cols{display:grid;grid-template-columns:1fr 1fr;gap:8mm;width:100%}
+.psheet .p3d{width:100%;max-height:150mm;object-fit:contain}
+.leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:8pt}.leg span{display:flex;align-items:center;gap:4px}
+.stamp{position:absolute;right:10mm;bottom:9mm;border-collapse:collapse;font-size:7.5pt;width:112mm;background:#fff}
+.stamp td{border:.3mm solid #111;padding:1mm 2mm}.stamp td:nth-child(odd){color:#555;width:18mm}
+#printdoc{display:none}
+@media print{
+  @page{size:A4 landscape;margin:0}
+  body>*:not(#printdoc){display:none!important}
+  #printdoc{display:block}.psheet{break-after:page;page-break-after:always}
+  html,body{background:#fff}
+}
