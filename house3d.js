@@ -362,3 +362,63 @@ export function mountSite(cv, P, onMove, onEnd) {
     },
   };
 }
+
+/* ---------- dům ukotvený na pozemku v živé Panoramě Mapy.com ---------- */
+// cam() → {e, n, yaw, pitch, fov}: poloha fotoaparátu v metrech od pozemku (východ, sever) a pohled v radiánech
+// G0 = {e, n, az, scale}: poloha domu v metrech od zadaného bodu, natočení ve stupních od severu
+export function mountGeo(cv, G0, cam, onEnd) {
+  const g = G(), R = new THREE.WebGLRenderer({canvas: cv, antialias: true, alpha: true});
+  R.setClearColor(0x000000, 0); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.05; R.outputColorSpace = THREE.SRGBColorSpace;
+  R.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+  const scene = new THREE.Scene(); materials.cache = materials(g.look());
+  const {me, extra} = build({roof: true, inst: false, cut: false, site: true}), house = new THREE.Group();
+  for (const m of me.meshes(materials.cache)) house.add(m); house.add(extra);
+  const bb = new THREE.Box3().setFromObject(house), c = bb.getCenter(new THREE.Vector3()), size = Math.max(6, bb.getSize(new THREE.Vector3()).length());
+  house.position.set(-c.x, -GROUND, -c.z);
+  const pivot = new THREE.Group(); pivot.add(house); scene.add(pivot);
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(size * 4, size * 4), new THREE.ShadowMaterial({opacity: .35})); catcher.rotation.x = -Math.PI / 2; catcher.receiveShadow = true; scene.add(catcher);
+  scene.add(new THREE.HemisphereLight('#e3eeff', '#6b6a55', 1.2));
+  const sun = new THREE.DirectionalLight('#fff3df', 2.3); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  const sc = sun.shadow.camera; sc.left = sc.bottom = -size; sc.right = sc.top = size; sc.near = .5; sc.far = size * 5; sun.shadow.bias = -.0004; sun.shadow.normalBias = .03;
+  scene.add(sun, sun.target);
+  const camera = new THREE.PerspectiveCamera(50, 1, .1, 3000), rc = new THREE.Raycaster(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  let last = '', alive = true;
+  const frame = () => {
+    if (!alive) return;
+    if (!cv.isConnected) return api.dispose();
+    const k = cam(), w = cv.clientWidth, h = cv.clientHeight;
+    if (k && w && h) {
+      const key = [k.e, k.n, k.yaw, k.pitch, k.fov, w, h, G0.e, G0.n, G0.az, G0.scale].map(v => (+v).toFixed(4)).join();
+      if (key !== last) {
+        last = key; R.setSize(w, h, false);
+        camera.aspect = w / h; camera.fov = 2 * Math.atan(Math.tan(k.fov / 2) / camera.aspect) * 180 / Math.PI; camera.updateProjectionMatrix();
+        camera.position.set(k.e, G0.camH || 2.6, -k.n); camera.rotation.set(-k.pitch, -k.yaw, 0, 'YXZ');
+        pivot.position.set(G0.e, 0, -G0.n); pivot.rotation.y = -(G0.az || 0) * Math.PI / 180; pivot.scale.setScalar((G0.scale || 100) / 100);
+        catcher.position.set(G0.e, 0, -G0.n);
+        const a = (G0.sun ?? 200) * Math.PI / 180, dd = size * 1.5; sun.position.set(G0.e + Math.sin(a) * dd, dd * 1.1, -G0.n - Math.cos(a) * dd); sun.target.position.set(G0.e, 0, -G0.n);
+        R.render(scene, camera);
+      }
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  // posouvání domu (jen v režimu umísťování, jinak canvas propouští dotyky panoramě)
+  const hit = (cx, cy) => { const r = cv.getBoundingClientRect(); rc.setFromCamera(new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1), camera); return rc.ray.intersectPlane(ground, new THREE.Vector3()); };
+  const pts = new Map(); let drag = null, two = null;
+  const pair = () => { const [a, b] = [...pts.values()]; return {d: Math.hypot(a[0] - b[0], a[1] - b[1]), ang: Math.atan2(b[1] - a[1], b[0] - a[0])}; };
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2) { drag = null; two = {...pair(), scale: G0.scale || 100, az: G0.az || 0}; }
+    else { const h = hit(e.clientX, e.clientY); drag = h ? {de: G0.e - h.x, dn: G0.n + h.z} : null; } });
+  cv.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (two && pts.size === 2) { const q = pair(); G0.scale = Math.max(40, Math.min(250, Math.round(two.scale * q.d / two.d))); G0.az = Math.round(((two.az + (q.ang - two.ang) * 180 / Math.PI) % 360 + 360) % 360); }
+    else if (drag) { const h = hit(e.clientX, e.clientY); if (!h) return; G0.e = h.x + drag.de; G0.n = -h.z + drag.dn; } });
+  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) two = null; if (!pts.size) { drag = null; onEnd?.(); } };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  const api = {
+    placing(on) { cv.style.pointerEvents = on ? 'auto' : 'none'; },
+    dispose() { if (!alive) return; alive = false; scene.traverse(m => { if (m.isMesh) m.geometry.dispose(); }); R.dispose(); R.forceContextLoss?.(); },
+    update() { last = ''; },
+  };
+  api.placing(false);
+  return api;
+}

@@ -376,15 +376,23 @@ function vSite() {
     <div id="panores"></div></div>
   </div>
   ${has ? `<div class="site" id="site"><img id="siteimg" alt="${pano ? 'Pohled z ulice z Panoramy Mapy.com' : 'Fotka pozemku'}"><canvas id="sitecv" aria-label="Dům vložený do pohledu na pozemek"></canvas><div class="sitebusy" id="sitebusy">${pano ? 'Načítám panoramu…' : 'Připravuji model…'}</div></div>
-  ${pano ? `<div class="row" style="justify-content:flex-start;margin:10px 0 0"><span class="mute">Panorama © <a href="https://mapy.com/" target="_blank" rel="noopener">Seznam.cz, a.s.</a> · ${esc(pano.label || '')}</span></div>
+  ${pano ? `<div class="row" style="justify-content:flex-start;margin:10px 0 0"><span class="mute">Panorama © <a href="https://mapy.com/" target="_blank" rel="noopener">Seznam.cz, a.s.</a> · ${esc(pano.label || '')} <span id="panodate"></span></span></div>
+  <div id="geoctl" hidden>
+   <div class="seg2" role="group" aria-label="Režim"><button class="on" data-dz="panowalk" aria-pressed="true">Procházet ulici</button><button data-dz="panoplace" aria-pressed="false">Posunout dům</button></div>
+   <p class="mute" id="geohint">Šipkami v panoramě se posouváte po ulici, tažením se rozhlížíte. Dům zůstává stát na pozemku.</p>
+   <div class="sitectl">${[['az', 'Natočení domu', 0, 359, 1, '°'], ['scale', 'Velikost', 40, 250, 1, ' %'], ['sun', 'Směr slunce', 0, 359, 1, '°']].map(([k, l, mn, mx, st, u]) => { const v = (pano.house || {})[k] ?? (k === 'scale' ? 100 : k === 'sun' ? 200 : 0); return `<label>${l} <output id="go_${k}">${Math.round(v)}${u}</output><input type="range" data-geo="${k}" data-u="${u}" min="${mn}" max="${mx}" step="${st}" value="${v}"></label>`; }).join('')}</div>
+   <div class="row" style="justify-content:flex-start"><button class="ghost" data-dz="geohome">Vrátit dům na zadané místo</button><button class="del" data-dz="sitedel">Odebrat pohled</button></div>
+   <p class="mute">Pohled z Panoramy jde podle podmínek Mapy.com jen zobrazit, ne uložit. Pro uložení do deníku použijte vlastní fotku.</p>
+  </div>
+  <div id="statctl" hidden>
   <div class="sitectl"><label class="chk" style="display:flex"><input type="checkbox" data-pano="toPlot" ${pano.toPlot !== false ? 'checked' : ''}>Dívat se přímo na zadané místo</label>
    <label>Směr pohledu <output id="so_pyaw">${Math.round(pano.yaw || 0)}°</output><input type="range" data-pano="yaw" min="0" max="359" step="5" value="${pano.yaw || 0}" ${pano.toPlot !== false ? 'disabled' : ''}></label>
-   <label>Hledat panoramu do <output id="so_prad">${pano.radius || 100} m</output><input type="range" data-pano="radius" min="20" max="300" step="10" value="${pano.radius || 100}"></label></div>` : ''}
+   <label>Hledat panoramu do <output id="so_prad">${pano.radius || 100} m</output><input type="range" data-pano="radius" min="20" max="300" step="10" value="${pano.radius || 100}"></label></div>` : '<div>'}
   <div class="row" style="justify-content:flex-start;margin:12px 0 0"><button data-dz="siteauto">Automaticky umístit</button><span class="mute" id="siteinfo">${info}</span></div>
   <div class="sitectl">${SITE.map(([k, l, mn, mx, st, u]) => `<label>${l} <output id="so_${k}">${siteVal(k, s[k])}${u}</output><input type="range" data-site="${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('')}</div>
   <p class="mute">Tip: nejdřív nastavte náklon a šířku záběru tak, aby stín a základy seděly na terén, pak dům posuňte a zvětšete.</p>
   <div class="row" style="justify-content:flex-start">${pano ? '' : '<button data-dz="sitesave">Uložit obrázek</button><button class="ghost" data-dz="sitediary">Uložit do deníku</button>'}<button class="ghost" data-dz="sitereset">Výchozí umístění</button><button class="del" data-dz="sitedel">Odebrat ${pano ? 'pohled' : 'fotku'}</button></div>
-  ${pano ? '<p class="mute">Pohled z Panoramy jde podle podmínek Mapy.com jen zobrazit, ne uložit. Pro uložení do deníku použijte vlastní fotku.</p>' : ''}`
+  ${pano ? '<p class="mute">Pohled z Panoramy jde podle podmínek Mapy.com jen zobrazit, ne uložit. Pro uložení do deníku použijte vlastní fotku.</p>' : ''}</div>`
   : '<div class="empty">Zatím žádná fotka ani pohled z ulice.</div>'}`;
 }
 const loadImg = (img, url, cors) => new Promise((ok, no) => { img.onload = () => ok(true); img.onerror = no; if (cors) img.crossOrigin = 'anonymous'; else img.removeAttribute('crossorigin'); img.src = url; });
@@ -402,12 +410,14 @@ async function panoSearch(q) {
 function setPano(p) {
   const d = D(), keep = d.site ? {...d.site} : siteDefaults();
   if (d.site?.photo && B().idbOk) B().DB.del('photos', d.site.photo).catch(() => {});
-  d.site = {...keep, photo: null, src: undefined, pano: {radius: 100, toPlot: true, yaw: 0, ...(d.site?.pano || {}), ...p}, needAuto: true};
+  d.site = {...keep, photo: null, src: undefined, pano: {radius: 100, toPlot: true, yaw: 0, ...(d.site?.pano || {}), house: undefined, ...p}, needAuto: true};
   B().save();
 }
 let siteCtl = null;
 async function mountSite(root) {
   const img = root.querySelector('#siteimg'), cv = root.querySelector('#sitecv'), s = D().site; if (!img) return;
+  if (s.pano && await mountPanoLive(root, s)) return;
+  root.querySelector('#statctl')?.removeAttribute('hidden');
   if (s.pano) {
     const u = panoUrl(s.pano);
     try { await loadImg(img, u, true); s.cors = true; }
@@ -423,6 +433,43 @@ async function mountSite(root) {
     document.getElementById('sitebusy').remove();
     if (s.needAuto) siteAuto();
   } catch (e) { document.getElementById('sitebusy').textContent = 'Tento prohlížeč neumí 3D (WebGL), dům do fotky vložit nejde.'; console.warn(e); }
+}
+/* živá Panorama Mapy.com s chůzí po ulici; dům je ukotvený na pozemku */
+let panoLib = null, geoCtl = null, panoObj = null;
+const loadPanoLib = () => panoLib ||= new Promise((ok, no) => {
+  if (window.Panorama) return ok(window.Panorama);
+  const sc = document.createElement('script'); sc.src = 'https://api.mapy.cz/js/panorama/v1/panorama.js';
+  sc.onload = () => window.Panorama ? ok(window.Panorama) : no(new Error('Panorama chybí')); sc.onerror = () => { panoLib = null; no(new Error('skript se nenačetl')); }; document.head.append(sc);
+});
+const enu = (o, p) => ({e: (p.lon - o.lon) * 111320 * Math.cos(o.lat * Math.PI / 180), n: (p.lat - o.lat) * 110540});
+async function mountPanoLive(root, s) {
+  const site = root.querySelector('#site'), img = root.querySelector('#siteimg'), cv = root.querySelector('#sitecv'), busy = root.querySelector('#sitebusy');
+  let P;
+  try { P = await loadPanoLib(); } catch (e) { return false; }
+  if (!cv.isConnected) return true;
+  site.style.aspectRatio = '3 / 2'; site.style.width = '100%'; img.style.display = 'none';
+  const view = document.createElement('div'); view.className = 'panoview'; site.prepend(view);
+  geoCtl?.dispose(); try { panoObj?.destroy?.(); } catch (e) {}
+  let pano;
+  try { pano = await P.panoramaFromPosition({parent: view, lon: s.pano.lon, lat: s.pano.lat, apiKey: MAPY_KEY, radius: s.pano.radius || 100, yaw: 'point', pitch: 0, fov: 1.2, showNavigation: true, lang: 'cs'}); }
+  catch (e) { busy.textContent = 'Panoramu se nepodařilo načíst: ' + (e.message || e); return true; }
+  if (!pano || (pano.errorCode && pano.errorCode !== 'NONE')) {
+    busy.textContent = pano?.errorCode === 'PANORAMA_NOT_FOUND' ? 'V okolí zadaného místa není žádná panorama. Zkuste zvětšit okruh hledání nebo zadat místo blíž k silnici.' : 'Panoramu se nepodařilo načíst' + (pano?.error ? ': ' + pano.error : '.') + ' Zkontrolujte klíč Mapy.com.';
+    root.querySelector('#statctl')?.removeAttribute('hidden'); return true;
+  }
+  panoObj = pano;
+  const o = {lon: s.pano.lon, lat: s.pano.lat};
+  let cur = pano.info && pano.info.lon ? {lon: pano.info.lon, lat: pano.info.lat} : o;
+  const showDate = i => { const d = (i || pano.info || {}).date; const el = document.getElementById('panodate'); if (el && d) el.textContent = '· snímek z ' + new Date(d.replace(' ', 'T')).toLocaleDateString('cs-CZ', {month: 'long', year: 'numeric'}); };
+  showDate();
+  pano.addListener?.('pano-place', d => { const i = (d && (d.info || d)) || pano.info; const q = i && i.lon ? i : pano.info; if (q && q.lon) cur = {lon: +q.lon, lat: +q.lat}; showDate(q); });
+  if (!s.pano.house) { const c0 = enu(o, cur); s.pano.house = {e: 0, n: 0, az: Math.round(((Math.atan2(c0.e, c0.n) * 180 / Math.PI + 30) % 360 + 360) % 360), scale: 100, sun: 200}; B().persist(); }
+  delete s.needAuto;
+  const m = await import('./house3d.js'); if (!cv.isConnected) return true;
+  geoCtl = m.mountGeo(cv, s.pano.house, () => { const k = pano.getCamera?.(); if (!k) return null; const c = enu(o, cur); return {e: c.e, n: c.n, yaw: k.yaw, pitch: k.pitch, fov: k.fov}; },
+    () => { for (const k of ['az', 'scale']) { const el = root.querySelector(`[data-geo="${k}"]`); if (el) { el.value = s.pano.house[k]; root.querySelector('#go_' + k).textContent = Math.round(s.pano.house[k]) + el.dataset.u; } } B().persist(); });
+  busy.remove(); root.querySelector('#geoctl')?.removeAttribute('hidden');
+  return true;
 }
 async function siteAuto() {
   const img = document.getElementById('siteimg'), s = D().site, btn = document.querySelector('[data-dz="siteauto"]'); if (!img || !s) return;
@@ -824,6 +871,10 @@ function onClick(e) {
   if (a === 'print') return doPrint();
   if (a === 'sitereset') { Object.assign(d.site, siteDefaults()); delete d.site.light; delete d.site.info; return B().save(); }
   if (a === 'siteauto') return siteAuto();
+  if (a === 'panowalk' || a === 'panoplace') { const on = a === 'panoplace'; geoCtl?.placing(on);
+    document.querySelectorAll('[data-dz="panowalk"],[data-dz="panoplace"]').forEach(b => { const x = (b.dataset.dz === 'panoplace') === on; b.classList.toggle('on', x); b.setAttribute('aria-pressed', x); });
+    document.getElementById('geohint').textContent = on ? 'Dům posunete tažením, dvěma prsty ho otočíte a zvětšíte. Pak se přepněte zpět na procházení.' : 'Šipkami v panoramě se posouváte po ulici, tažením se rozhlížíte. Dům zůstává stát na pozemku.'; return; }
+  if (a === 'geohome') { Object.assign(d.site.pano.house, {e: 0, n: 0}); geoCtl?.update(); return B().persist(); }
   if (a === 'panogps') { if (!navigator.geolocation) return B().toast('Poloha není v tomto prohlížeči k dispozici');
     t.disabled = true; navigator.geolocation.getCurrentPosition(p => { t.disabled = false; setPano({lon: +p.coords.longitude.toFixed(6), lat: +p.coords.latitude.toFixed(6), label: 'Moje poloha'}); },
       () => { t.disabled = false; B().toast('Polohu se nepodařilo zjistit'); }, {enableHighAccuracy: true, timeout: 15000}); return; }
@@ -842,7 +893,7 @@ function onChange(e) {
   if (ds.r3) { ui.r3[ds.r3] = t.checked; if (h3) return h3.rebuild(ui.r3); const cv = document.getElementById('dz3d'); if (cv) draw3D(cv, ui.r3); return; }
   if (ds.lookc) return setLook(ds.lookc, t.value);
   if ('sitefile' in ds) { if (t.files[0]) siteFile(t.files[0]); return; }
-  if (ds.site) return B().persist();
+  if (ds.site || ds.geo) return B().persist();
   if (ds.pano) { const p = d.site.pano; if (ds.pano === 'toPlot') p.toPlot = t.checked; else p[ds.pano] = +t.value; d.site.needAuto = true; return B().save(); }
   if (ds.roof) return mut(() => { d.roof[ds.roof] = Math.max(0, num(t.value)); if (d.roof.pitch > 70) d.roof.pitch = 70; });
   if (ds.price) return mut(() => { d.prices[ds.price] = Math.max(0, Math.round(num(t.value))); });
@@ -864,6 +915,8 @@ function mount(root) {
   root.addEventListener('click', onClick); root.addEventListener('change', onChange);
   root.addEventListener('submit', e => { if (!('panoq' in e.target.dataset)) return; e.preventDefault(); const q = e.target.q.value.trim(); if (q) panoSearch(q); });
   root.addEventListener('input', e => { const sk = e.target.dataset.site, pk = e.target.dataset.pano;
+    const gk = e.target.dataset.geo;
+    if (gk && D().site?.pano?.house) { D().site.pano.house[gk] = +e.target.value; document.getElementById('go_' + gk).textContent = e.target.value + e.target.dataset.u; geoCtl?.update(); return; }
     if (pk === 'yaw' || pk === 'radius') { document.getElementById(pk === 'yaw' ? 'so_pyaw' : 'so_prad').textContent = e.target.value + (pk === 'yaw' ? '°' : ' m'); return; }
     if (sk && D().site) { const v = +e.target.value; D().site[sk] = v; document.getElementById('so_' + sk).textContent = siteVal(sk, v) + SITE.find(x => x[0] === sk)[5]; siteCtl?.update(D().site); return; } if (e.target.dataset.lookc && h3) { e.target.parentElement.style.setProperty('--c', e.target.value); h3.setLook({...look(), [e.target.dataset.lookc]: e.target.value}); } });
   const svg = root.querySelector('#dzsvg'); if (svg) mountPlan(svg);

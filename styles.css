@@ -116,6 +116,10 @@ label{display:block;font-size:14px;font-weight:600;margin:10px 0 4px}
 .srcbox{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:6px;align-content:start}
 .panoq{display:flex;gap:6px}.panoq input{flex:1;min-width:0}.panoq button{min-height:44px}
 .panolist{display:grid;gap:4px;margin-top:6px}.panolist button{text-align:left;justify-content:flex-start;min-height:40px}
+.panoview{position:absolute;inset:0}.panoview>*{width:100%;height:100%}
+.site:has(.panoview) canvas{z-index:2}
+.seg2{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:10px 0 4px}
+.seg2 button{border:0;border-radius:0;background:transparent;color:var(--ink);min-height:42px}.seg2 button.on{background:var(--ink);color:var(--bg)}
 /* výkresy */
 .pv{color-scheme:light;--z:.4;display:grid;gap:14px;margin-top:16px}
 .pv .psheet{zoom:var(--z);box-shadow:0 0 0 1px #ccc}
