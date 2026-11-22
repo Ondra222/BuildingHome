@@ -120,6 +120,14 @@ label{display:block;font-size:14px;font-weight:600;margin:10px 0 4px}
 .site:has(.panoview) canvas{z-index:2}
 .seg2{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:10px 0 4px}
 .seg2 button{border:0;border-radius:0;background:transparent;color:var(--ink);min-height:42px}.seg2 button.on{background:var(--ink);color:var(--bg)}
+.panonav{position:absolute;right:10px;bottom:10px;z-index:3;display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,46px);gap:6px}
+.panonav button{min-height:0;padding:0;font-size:22px;background:color-mix(in srgb,#fff 88%,transparent);color:#1b1d1a;border:1px solid #0002;border-radius:50%}
+.panonav [data-pn=left]{grid-area:1/1}.panonav [data-pn=fwd]{grid-area:1/2}.panonav [data-pn=right]{grid-area:1/3}.panonav [data-pn=look]{grid-area:2/1}.panonav [data-pn=back]{grid-area:2/2}
+.panonav.busy,.panomap.busy{opacity:.55;pointer-events:none}
+.panomap{position:relative;height:240px;border-radius:10px;overflow:hidden;background:#e8e6df;margin:10px 0;touch-action:none;cursor:crosshair;user-select:none}
+.mmt img{position:absolute;width:256px;height:256px;max-width:none;pointer-events:none}.mmo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.mmz{position:absolute;right:8px;top:8px;display:grid;gap:4px}.mmz button{width:36px;min-height:36px;padding:0;background:#fff;color:#1b1d1a;border:1px solid #0002}
+.mma{position:absolute;left:6px;bottom:4px;font-size:11px;background:#fffc;padding:1px 5px;border-radius:4px;color:#333}
 /* výkresy */
 .pv{color-scheme:light;--z:.4;display:grid;gap:14px;margin-top:16px}
 .pv .psheet{zoom:var(--z);box-shadow:0 0 0 1px #ccc}
