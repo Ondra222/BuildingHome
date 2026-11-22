@@ -21,7 +21,7 @@ Stavebník nemá mít rozpočet v Excelu, kontakty v telefonu, fotky v galerii a
 | **Harmonogram** | Etapy stavby s termíny, časovou osou (Gantt) a úkoly uvnitř etap. |
 | **Řemeslníci** | Kontakty, profese, stav (poptáno → nabídka → domluveno → hotovo), nabídnutá cena a kolik už jim bylo zaplaceno. |
 | **Deník** | Zápisy podle dnů s fotkami ze stavby. |
-| **Projekt** | Vlastní návrh domu: kreslení půdorysu (obvodové a nosné zdi, příčky, okna, dveře, místnosti s plochou) po podlažích, návrh kanalizace (potrubí DN 40–110, zařizovací předměty) a elektroinstalace (zásuvky, vypínače, světla, rozvaděč, okruhy s jističi, kabely). 3D model ve WebGL (Three.js) se stíny, texturami, okny s rámy a sklem, volbou střechy (sedlová, bungalov, valbová, stanová, pultová, plochá) a barev omítky, střechy, oken a soklu. Záložka Na pozemku vloží dům do fotky pozemku: automaticky (rozbor fotky přímo v prohlížeči najde horizont, volnou plochu terénu, světlo a barevnost) i ručně (posun prstem, otočení a zvětšení dvěma prsty, náklon a šířka záběru, směr slunce se stínem) a výsledek uloží jako obrázek nebo do deníku. Výkaz výměr a orientační cena hrubé stavby po částech s upravitelnými jednotkovými cenami a převodem do plánu rozpočtu. Tisk sady výkresů A4 do PDF (technická zpráva, půdorysy, kanalizace, elektro, 3D pohled, výkaz výměr s razítkem). |
+| **Projekt** | Vlastní návrh domu: kreslení půdorysu (obvodové a nosné zdi, příčky, okna, dveře, místnosti s plochou) po podlažích, návrh kanalizace (potrubí DN 40–110, zařizovací předměty) a elektroinstalace (zásuvky, vypínače, světla, rozvaděč, okruhy s jističi, kabely). 3D model ve WebGL (Three.js) se stíny, texturami, okny s rámy a sklem, volbou střechy (sedlová, bungalov, valbová, stanová, pultová, plochá) a barev omítky, střechy, oken a soklu. Záložka Na pozemku vloží dům do fotky pozemku: automaticky (rozbor fotky přímo v prohlížeči najde horizont, volnou plochu terénu, světlo a barevnost); místo vlastní fotky jde použít i pohled z ulice z Panoramy Mapy.com (hledání adresy, odkaz z Mapy.com, souřadnice nebo poloha telefonu; jen zobrazení, panorama se podle podmínek Mapy.com neukládá) i ručně (posun prstem, otočení a zvětšení dvěma prsty, náklon a šířka záběru, směr slunce se stínem) a výsledek uloží jako obrázek nebo do deníku. Výkaz výměr a orientační cena hrubé stavby po částech s upravitelnými jednotkovými cenami a převodem do plánu rozpočtu. Tisk sady výkresů A4 do PDF (technická zpráva, půdorysy, kanalizace, elektro, 3D pohled, výkaz výměr s razítkem). |
 
 Dále: záloha a obnova do souboru JSON (včetně fotek), mazání s možností vrátit, ukázková data, offline režim, tmavý režim podle systému.
 
@@ -97,6 +97,8 @@ Nasazení: v nastavení repozitáře zapnout **Pages → Deploy from branch → 
 - Kontrolní seznamy převzetí prací po řemeslnících
 
 ## Upozornění
+
+Klíč k Mapy.com API je v `design.js` (`MAPY_KEY`). V účtu na developer.mapy.com ho omezte na adresu aplikace, aby ho nemohl zneužít nikdo jiný.
 
 Záložka Projekt slouží jako návrh a podklad pro projektanta. Dokumentaci pro povolení stavby musí zpracovat autorizovaná osoba, elektro a kanalizaci projektant příslušné profese. Orientační cena vychází z výměr výkresu a upravitelných jednotkových cen; výchozí ceny jsou hrubý odhad.
 

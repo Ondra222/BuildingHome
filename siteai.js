@@ -98,3 +98,8 @@ export function place(a, house, aspect, prev = {}) {
   return {x: gx, z: -dist, rot: ((rot % 360) + 360) % 360, scale: 100, pitch: Math.round(pitch * 2) / 2, camH, fov, sun, light,
     info: {horizon: Math.round(a.horizon * 100), dist: Math.round(dist), overcast: a.overcast}};
 }
+
+// Odhad, když obrázek nejde rozebrat (např. server nepovolí čtení pixelů): horizont uprostřed, volný střed, neutrální světlo
+export function fallback() {
+  return {horizon: .5, free: [.3, .7], skyC: [.78, .84, .9], grC: [.45, .5, .35], all: [.55, .57, .55], mean: .55, sat: .25, overcast: false, sunLeft: false, sunRight: false, groundShare: .4};
+}
