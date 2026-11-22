@@ -313,7 +313,7 @@ export function mountSite(cv, P, onMove, onEnd) {
   house.position.set(-c.x, -GROUND, -c.z);
   const pivot = new THREE.Group(); pivot.add(house); scene.add(pivot);
   const catcher = new THREE.Mesh(new THREE.PlaneGeometry(size * 4, size * 4), new THREE.ShadowMaterial({opacity: .4})); catcher.rotation.x = -Math.PI / 2; catcher.receiveShadow = true; scene.add(catcher);
-  scene.add(new THREE.HemisphereLight('#e3eeff', '#6b6a55', 1.15));
+  const hemi = new THREE.HemisphereLight('#e3eeff', '#6b6a55', 1.15); scene.add(hemi);
   const sun = new THREE.DirectionalLight('#fff3df', 2.4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   const sc = sun.shadow.camera; sc.left = sc.bottom = -size; sc.right = sc.top = size; sc.near = .5; sc.far = size * 5; sun.shadow.bias = -.0004; sun.shadow.normalBias = .03;
   scene.add(sun, sun.target);
@@ -324,9 +324,16 @@ export function mountSite(cv, P, onMove, onEnd) {
     cam.position.set(0, P.camH, 0); cam.rotation.set(-(P.pitch || 0) * Math.PI / 180, 0, 0, 'YXZ');
     pivot.position.set(P.x, 0, P.z); pivot.rotation.y = (P.rot || 0) * Math.PI / 180; pivot.scale.setScalar((P.scale || 100) / 100);
     catcher.position.set(P.x, 0, P.z);
+    const Lt = P.light || {}, dist = Math.hypot(P.x, P.z), haze = Math.max(.86, Math.min(1, 1 - (dist - 30) / 450));
+    hemi.color.set(Lt.sky || '#e3eeff'); hemi.groundColor.set(Lt.ground || '#6b6a55'); hemi.intensity = Lt.overcast ? 1.5 : 1.15;
+    sun.intensity = Lt.sunI ?? 2.4; sun.color.set(Lt.sunC || '#fff3df'); catcher.material.opacity = Lt.shadow ?? .4; R.toneMappingExposure = Lt.exposure ?? 1.05;
+    cv.style.filter = filt(1);
     const a = (P.sun ?? 35) * Math.PI / 180, dd = size * 1.5; sun.position.set(P.x + Math.sin(a) * dd, dd * 1.1, P.z + Math.cos(a) * dd); sun.target.position.set(P.x, 0, P.z);
     R.render(scene, cam);
   };
+  // úprava vzhledu, aby model ladil s fotkou: sytost, jemné rozostření, opar podle vzdálenosti
+  function filt(k) { const Lt = P.light || {}, dist = Math.hypot(P.x, P.z), haze = Math.max(.86, Math.min(1, 1 - (dist - 30) / 450));
+    return Lt.sat ? `saturate(${Lt.sat}) contrast(${haze.toFixed(3)}) brightness(${(1 + (1 - haze) * .35).toFixed(3)}) blur(${((Lt.blur || 0) * k).toFixed(2)}px)` : 'none'; }
   const fit = () => { R.setSize(cv.clientWidth, cv.clientHeight, false); apply(); };
   const ro = new ResizeObserver(fit); ro.observe(cv); fit();
   const hit = (cx, cy) => { const r = cv.getBoundingClientRect(); rc.setFromCamera(new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1), cam); return rc.ray.intersectPlane(ground, new THREE.Vector3()); };
@@ -349,7 +356,7 @@ export function mountSite(cv, P, onMove, onEnd) {
     async toBlob(img) { // fotka v plném rozlišení + dům
       const W = img.naturalWidth, H = img.naturalHeight, w0 = cv.clientWidth, h0 = cv.clientHeight, pr = R.getPixelRatio();
       R.setPixelRatio(1); R.setSize(W, H, false); const a0 = cam.aspect; apply.call(null); cam.aspect = W / H; cam.updateProjectionMatrix(); R.render(scene, cam);
-      const out = document.createElement('canvas'); out.width = W; out.height = H; const x = out.getContext('2d'); x.drawImage(img, 0, 0, W, H); x.drawImage(cv, 0, 0, W, H);
+      const out = document.createElement('canvas'); out.width = W; out.height = H; const x = out.getContext('2d'); x.drawImage(img, 0, 0, W, H); x.filter = filt(W / w0); x.drawImage(cv, 0, 0, W, H); x.filter = 'none';
       R.setPixelRatio(pr); R.setSize(w0, h0, false); cam.aspect = a0; apply();
       return new Promise((ok, no) => out.toBlob(b => b ? ok(b) : no(), 'image/jpeg', .9));
     },

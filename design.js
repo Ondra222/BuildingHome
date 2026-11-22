@@ -362,10 +362,11 @@ function siteDefaults() { const o = outline(D().floors[0]), sz = o ? Math.max(o.
 const siteVal = (k, v) => k === 'camH' ? m2(v) : Math.round(v);
 function vSite() {
   const s = D().site;
-  return `<p>Stoupněte si na místo, odkud chcete dům vidět (třeba z cesty před pozemkem), a vyfoťte pozemek na šířku. Dům se do fotky vloží i se stínem. Prstem nebo myší ho posunete, dvěma prsty otočíte a zvětšíte.</p>
+  return `<p>Stoupněte si na místo, odkud chcete dům vidět (třeba z cesty před pozemkem), a vyfoťte pozemek na šířku. Aplikace ve fotce najde horizont a volnou plochu terénu, dům tam sama usadí a přizpůsobí mu světlo, stín i barvy fotky. Pak ho můžete doladit: prstem posunout, dvěma prsty otočit a zvětšit.</p>
   <div class="row" style="justify-content:flex-start;margin-bottom:12px"><label class="btn" style="margin:0">Vyfotit pozemek<input type="file" accept="image/*" capture="environment" data-sitefile hidden></label>
   <label class="btn ghost" style="margin:0;background:transparent;color:var(--ink);border-color:var(--line)">Vybrat fotku z galerie<input type="file" accept="image/*" data-sitefile hidden></label></div>
   ${s && s.photo ? `<div class="site" id="site"><img id="siteimg" alt="Fotka pozemku"><canvas id="sitecv" aria-label="Dům vložený do fotky pozemku"></canvas><div class="sitebusy" id="sitebusy">Připravuji model…</div></div>
+  <div class="row" style="justify-content:flex-start;margin:12px 0 0"><button data-dz="siteauto">Automaticky umístit</button><span class="mute" id="siteinfo">${s.info ? `Horizont ve ${s.info.horizon} % výšky fotky, dům asi ${s.info.dist} m od vás, ${s.info.overcast ? 'zataženo – měkké stíny' : 'světlo a stín podle oblohy'}.` : ''}</span></div>
   <div class="sitectl">${SITE.map(([k, l, mn, mx, st, u]) => `<label>${l} <output id="so_${k}">${siteVal(k, s[k])}${u}</output><input type="range" data-site="${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('')}</div>
   <p class="mute">Tip: nejdřív nastavte náklon a šířku záběru tak, aby stín a základy seděly na terén, pak dům posuňte a zvětšete. Výška fotoaparátu se hodí pro fotky z okna nebo z dronu.</p>
   <div class="row" style="justify-content:flex-start"><button data-dz="sitesave">Uložit obrázek</button><button class="ghost" data-dz="sitediary">Uložit do deníku</button><button class="ghost" data-dz="sitereset">Výchozí umístění</button><button class="del" data-dz="sitedel">Odebrat fotku</button></div>`
@@ -381,13 +382,24 @@ async function mountSite(root) {
     const m = await import('./house3d.js'); if (!cv.isConnected) return;
     siteCtl?.dispose(); siteCtl = m.mountSite(cv, s, p => { Object.assign(s, p); for (const k of ['rot', 'scale']) { const el = root.querySelector(`[data-site="${k}"]`); if (el) { el.value = s[k]; root.querySelector('#so_' + k).textContent = siteVal(k, s[k]) + SITE.find(x => x[0] === k)[5]; } } }, () => B().persist());
     document.getElementById('sitebusy').remove();
+    if (s.needAuto) siteAuto();
   } catch (e) { document.getElementById('sitebusy').textContent = 'Tento prohlížeč neumí 3D (WebGL), dům do fotky vložit nejde.'; console.warn(e); }
+}
+async function siteAuto() {
+  const img = document.getElementById('siteimg'), s = D().site, btn = document.querySelector('[data-dz="siteauto"]'); if (!img || !s) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Hledám místo pro dům…'; }
+  try {
+    const ai = await import('./siteai.js'), a = ai.analyze(img), o = outline(D().floors[0]);
+    const house = o ? {w: o.bb.X - o.bb.x, d: o.bb.Y - o.bb.y} : {w: 12, d: 10};
+    const p = ai.place(a, house, img.naturalWidth / img.naturalHeight, s);
+    Object.assign(s, p); delete s.needAuto; B().save();
+  } catch (e) { console.warn(e); delete s.needAuto; B().toast('Automatické umístění se nepovedlo, umístěte dům ručně'); if (btn) { btn.disabled = false; btn.textContent = 'Automaticky umístit'; } }
 }
 async function siteFile(file) {
   try {
     const blob = await B().shrink(file, 2200, .88), d = D(), old = d.site?.photo, keep = d.site ? {...d.site} : siteDefaults();
-    if (B().idbOk) { const id = 'site-' + B().uid(); await B().DB.put('photos', id, blob); d.site = {...keep, photo: id, src: undefined}; if (old) B().DB.del('photos', old).catch(() => {}); }
-    else { const r = new FileReader(); d.site = {...keep, photo: 'inline', src: await new Promise(ok => { r.onload = () => ok(r.result); r.readAsDataURL(blob); })}; }
+    if (B().idbOk) { const id = 'site-' + B().uid(); await B().DB.put('photos', id, blob); d.site = {...keep, photo: id, src: undefined, needAuto: true}; if (old) B().DB.del('photos', old).catch(() => {}); }
+    else { const r = new FileReader(); d.site = {...keep, needAuto: true, photo: 'inline', src: await new Promise(ok => { r.onload = () => ok(r.result); r.readAsDataURL(blob); })}; }
     B().save();
   } catch (e) { B().toast('Fotku se nepodařilo načíst'); }
 }
@@ -768,7 +780,8 @@ function onClick(e) {
     B().save(); return B().toast('Plán rozpočtu upraven podle návrhu', () => { s.stages = JSON.parse(old); B().save(); });
   }
   if (a === 'print') return doPrint();
-  if (a === 'sitereset') { Object.assign(d.site, siteDefaults()); return B().save(); }
+  if (a === 'sitereset') { Object.assign(d.site, siteDefaults()); delete d.site.light; delete d.site.info; return B().save(); }
+  if (a === 'siteauto') return siteAuto();
   if (a === 'sitedel') { const old = d.site; delete d.site; B().save(); return B().toast('Fotka odebrána', () => { d.site = old; B().save(); }); }
   if (a === 'sitesave' || a === 'sitediary') { if (!siteCtl) return; t.disabled = true;
     siteCtl.toBlob(document.getElementById('siteimg')).then(async blob => { t.disabled = false;
